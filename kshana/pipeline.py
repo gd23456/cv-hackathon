@@ -12,10 +12,10 @@ import cv2
 import numpy as np
 
 from . import classical, parser, planner, safety, verifier
-from .anytime import Attempt, run_anytime
+from .anytime import MAX_SAFETY_REJECTIONS, SAFETY_REJECTION, Attempt, run_anytime
 from .generator import LATENT_FOR_RES, Generator
 from .inputs import CleanPrompt, fit_tokens
-from .ort import low_memory
+from .ort import low_memory, session
 
 BENCH_PROMPT = "a red apple to the left of a blue cup on a wooden table"
 DEFAULT_MODELS = Path(__file__).resolve().parent.parent / "server" / "models"
@@ -58,6 +58,9 @@ class Pipeline:
         self.gen = Generator(self.models, self.threads)
         self.verifier = verifier.Verifier(self.models, self.threads)
         self.concepts = safety.ConceptCheck(self.verifier.clip)
+        nsfw = self.models / "nsfw.onnx"
+        classifier = safety.NsfwClassifier(session(nsfw, self.threads)) if nsfw.exists() else None
+        self.gate = safety.OutputGate(classifier, self.concepts)
         parser.parse("warm up the parser")
 
     def benchmark(self) -> planner.CostTable:
@@ -93,8 +96,8 @@ class Pipeline:
         res = classical.enhance(raw, parsed.names_colours, self.classical_modes)
         t2 = time.perf_counter()
         image_emb = self.verifier.clip.embed_image(res.image)
-        if self.concepts.flagged(image_emb):
-            return Attempt(seed, None, -1.0, False, rejected="output safety check")
+        if not self.gate.allows(res.image, image_emb):
+            return Attempt(seed, None, -1.0, False, rejected=SAFETY_REJECTION)
         if res.assessment.severe:
             return Attempt(seed, None, -1.0, False, rejected=res.assessment.severe)
 
@@ -161,11 +164,16 @@ class Pipeline:
         on_plan(plan, clean.notes)
 
         t0 = time.perf_counter()
+        prompt_emb = self.verifier.text_embedding(clean.text)
+        text_emb = prompt_emb if plan.checks == planner.FULL else None
+        clip_text_ms_value = (time.perf_counter() - t0) * 1000.0
+        if self.concepts.prompt_flagged(prompt_emb):
+            return Outcome("refused", "This prompt can't be generated. Try describing something different.", "prompt_safety")
+
+        t0 = time.perf_counter()
         emb = self.gen.encode(clean.text)
         text_ms = (time.perf_counter() - t0) * 1000.0
-        t0 = time.perf_counter()
-        text_emb = self.verifier.text_embedding(clean.text) if plan.checks == planner.FULL else None
-        clip_text_ms = (time.perf_counter() - t0) * 1000.0
+        clip_text_ms = clip_text_ms_value
 
         first_image_ms: list[float] = []
 
@@ -213,8 +221,8 @@ class Pipeline:
         }
         if result.stopped == "cancelled":
             return Outcome("cancelled", "Cancelled: the page stopped checking on this job.", "abandoned", timings)
-        if result.best is None:
-            if "output safety check" in result.rejected:
+        if result.rejected.count(SAFETY_REJECTION) >= MAX_SAFETY_REJECTIONS or (result.best is None and SAFETY_REJECTION in result.rejected):
+            if True:
                 return Outcome("refused", "The result was blocked by the safety check. Try a different prompt.", "output_safety", timings)
             return Outcome("error", "Generation failed on every try. Please try again.", "generation_failed", timings)
         return Outcome("done", timings=timings)

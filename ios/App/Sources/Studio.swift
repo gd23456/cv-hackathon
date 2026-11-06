@@ -39,6 +39,7 @@ final class Studio {
     private let logger = Logger(subsystem: "com.gourabdash.kshana", category: "studio")
     private let generator: Generator?
     private let verifier: Verifier?
+    private let safety: SafetyGate?
     private let session: GenerationSession?
     private let textOnCPU = CommandLine.arguments.contains("--text-cpu")
     private var generationTask: Task<Void, Never>?
@@ -51,7 +52,7 @@ final class Studio {
             let models = bundle.url(forResource: "Models", withExtension: nil),
             let tokenizer = bundle.url(forResource: "Tokenizer", withExtension: nil)
         else {
-            (generator, verifier, session) = (nil, nil, nil)
+            (generator, verifier, safety, session) = (nil, nil, nil, nil)
             return
         }
         let generator = Generator(
@@ -61,9 +62,11 @@ final class Studio {
         let verifier = bundle.url(forResource: "Verifier", withExtension: nil).map {
             Verifier(location: VerifierLocation(directory: $0, tokenizer: tokenizer))
         }
+        let safety = SafetyGate(modelURL: bundle.url(forResource: "Verifier", withExtension: nil)?.appending(path: "nsfw_marqo.mlmodelc"))
         self.generator = generator
         self.verifier = verifier
-        session = GenerationSession(generator: generator, verifier: verifier)
+        self.safety = safety
+        session = GenerationSession(generator: generator, verifier: verifier, safety: safety)
     }
 
     var canGenerate: Bool {
@@ -106,6 +109,14 @@ final class Studio {
             self.acceleration = acceleration
             if !acceleration.isAccelerated {
                 notice = "The Neural Engine isn't available right now, so images take about a second each. Reopening Kshana may fix this."
+            }
+            phase = .preparing("Safety check")
+            // If this fails the app still opens, but it refuses to show any image.
+            do {
+                try await safety?.load()
+            } catch {
+                logger.error("safety gate failed: \(String(describing: error), privacy: .public)")
+                notice = "The safety check couldn't load, so images can't be shown. Close Kshana and try again."
             }
             phase = .preparing("Checks")
             await loadVerifier()
@@ -270,7 +281,7 @@ final class Studio {
                     log("prompt \(i): \(text) | \(plan.reason)")
                 case .finished(let s):
                     let checks = s.best.checks.map { "\($0.title)=\($0.state)" }.joined(separator: ", ")
-                    log(String(format: "prompt %d: tried %d in %.0f ms, first image %.0f ms, verify %.0f ms, score %.2f, align %.3f, unsafe %.3f", i, s.candidatesTried, s.elapsedMs, s.firstImageMs, s.best.verifyMs, s.best.score, s.best.alignment ?? -1, s.unsafeProbability ?? -1))
+                    log(String(format: "prompt %d: tried %d in %.0f ms, first image %.0f ms, verify %.0f ms, score %.2f, align %.3f, safety rejected %d", i, s.candidatesTried, s.elapsedMs, s.firstImageMs, s.best.verifyMs, s.best.score, s.best.alignment ?? -1, s.safetyRejections))
                     log("  checks: \(checks)")
                     log("  stages: " + s.stages.map { String(format: "%@ %.1f ms %@", $0.name, $0.milliseconds, $0.applied ? "on" : "off") }.joined(separator: ", "))
                     try? s.finalImage.writePNG(to: documents.appending(path: "session_\(i).png"))

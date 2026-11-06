@@ -7,6 +7,10 @@ from dataclasses import dataclass, field
 from typing import Callable
 
 
+SAFETY_REJECTION = "output safety check"
+MAX_SAFETY_REJECTIONS = 3
+
+
 @dataclass
 class Attempt:
     """One evaluated seed. `usable` is False for blank frames and safety hits."""
@@ -76,6 +80,10 @@ def run_anytime(
         n += 1
         if not attempt.usable:
             rejected.append(attempt.rejected or "rejected")
+            # A prompt that keeps producing rejected images isn't worth more tries.
+            if rejected.count(SAFETY_REJECTION) >= MAX_SAFETY_REJECTIONS:
+                stopped = "safety"
+                break
         elif best is None or attempt.score > best.score:
             best = attempt
             on_best(best, n)

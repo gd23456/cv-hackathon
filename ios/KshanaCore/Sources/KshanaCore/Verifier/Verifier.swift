@@ -21,12 +21,11 @@ public struct Verification: Sendable {
     public let alignMs: Double
 }
 
-/// On-device checking: Apple's YOLOv3-Tiny, MobileCLIP S0 and an NSFW classifier.
+/// On-device checking of prompt facts: Apple's YOLOv3-Tiny and MobileCLIP S0.
 public actor Verifier {
     private let location: VerifierLocation
     private let computeUnits: MLComputeUnits
     private var detector: VNCoreMLModel?
-    private var safety: VNCoreMLModel?
     private var imageEncoder: MLModel?
     private var textEncoder: MLModel?
     private var tokenizer: BPETokenizer?
@@ -50,7 +49,6 @@ public actor Verifier {
         let yolo = try VNCoreMLModel(for: MLModel(contentsOf: url("YOLOv3TinyInt8LUT.mlmodelc"), configuration: config))
         yolo.featureProvider = try MLDictionaryFeatureProvider(dictionary: ["iouThreshold": 0.45, "confidenceThreshold": 0.2])
         detector = yolo
-        safety = try VNCoreMLModel(for: MLModel(contentsOf: url("NSFW.mlmodelc"), configuration: config))
         imageEncoder = try MLModel(contentsOf: url("mobileclip_s0_image.mlmodelc"), configuration: config)
         textEncoder = try MLModel(contentsOf: url("mobileclip_s0_text.mlmodelc"), configuration: config)
         // OpenCLIP pads with id 0, which is the "!" token, unlike Stable Diffusion's encoder.
@@ -63,7 +61,6 @@ public actor Verifier {
 
     public func unload() {
         detector = nil
-        safety = nil
         imageEncoder = nil
         textEncoder = nil
         cachedText = nil
@@ -79,16 +76,6 @@ public actor Verifier {
             checks: Checklist.evaluate(parsed, detections: detections, image: image),
             detections: detections, alignment: alignment, detectMs: detectMs, alignMs: alignMs
         )
-    }
-
-    /// Probability that the image is unsafe, or nil if the classifier isn't loaded.
-    public func unsafeProbability(of image: RGBAImage) throws -> Float? {
-        guard let safety, let cgImage = image.cgImage else { return nil }
-        let request = VNCoreMLRequest(model: safety)
-        request.imageCropAndScaleOption = .centerCrop
-        try VNImageRequestHandler(cgImage: cgImage, orientation: .up).perform([request])
-        let results = request.results as? [VNClassificationObservation] ?? []
-        return results.first { $0.identifier == "NSFW" }?.confidence
     }
 
     private func detect(in image: RGBAImage) throws -> [Detection] {

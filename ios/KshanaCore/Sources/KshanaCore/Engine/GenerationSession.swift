@@ -20,7 +20,7 @@ public struct SessionSummary: Sendable {
     public let candidatesTried: Int
     public let elapsedMs: Double
     public let firstImageMs: Double
-    public let unsafeProbability: Float?
+    public let safetyRejections: Int
     public let wasTruncated: Bool
 }
 
@@ -35,13 +35,16 @@ public enum SessionEvent: Sendable {
 /// The anytime loop: show the first image at once, then keep trying seeds until
 /// the plan's deadline, publishing each image that beats the current best.
 public actor GenerationSession {
-    static let unsafeThreshold: Float = 0.9
+    static let refusal = "This image can't be shown. Try describing something different."
+    static let maxSafetyRejections = 3
     private let generator: Generator
     private let verifier: Verifier?
+    private let safety: SafetyGate
 
-    public init(generator: Generator, verifier: Verifier?) {
+    public init(generator: Generator, verifier: Verifier?, safety: SafetyGate) {
         self.generator = generator
         self.verifier = verifier
+        self.safety = safety
     }
 
     public nonisolated func run(prompt: String, budget: Budget, baseSeed: UInt64) -> AsyncStream<SessionEvent> {
@@ -60,8 +63,16 @@ public actor GenerationSession {
             continuation.yield(.failed("Type a description first."))
             return
         }
+        guard !PromptSafety.isUnreadable(trimmed) else {
+            continuation.yield(.blocked("Please describe the image in English, so the safety filter can read it."))
+            return
+        }
         guard !PromptSafety.isBlocked(trimmed) else {
             continuation.yield(.blocked("This app doesn't generate that kind of image. Try a different description."))
+            return
+        }
+        guard await safety.isLoaded else {
+            continuation.yield(.failed("The safety check isn't ready, so nothing can be shown yet. Close Kshana and try again."))
             return
         }
 
@@ -83,6 +94,7 @@ public actor GenerationSession {
             var firstImageMs: Double?
             var index = 0
             var failures = 0
+            var safetyRejections = 0
 
             while index < decision.maxCandidates, failures < 4 {
                 try Task.checkCancellation()
@@ -92,6 +104,17 @@ public actor GenerationSession {
                 let generated = try await generator.generate(prompt: trimmed, seed: seed)
                 let quality = ImageQuality.measure(generated.image)
                 if quality.isBlank {
+                    failures += 1
+                    continue
+                }
+
+                // Nothing leaves this loop for the screen until the gate has passed it.
+                guard await safety.allows(generated.image) else {
+                    safetyRejections += 1
+                    if safetyRejections >= Self.maxSafetyRejections {
+                        continuation.yield(.blocked(Self.refusal))
+                        return
+                    }
                     failures += 1
                     continue
                 }
@@ -124,7 +147,7 @@ public actor GenerationSession {
             }
 
             guard let best else {
-                continuation.yield(.failed("The generator kept producing blank images. Try again."))
+                continuation.yield(.failed("No usable image came out. Try again, or describe something different."))
                 return
             }
 
@@ -132,15 +155,14 @@ public actor GenerationSession {
                 ? ClassicalPipeline.process(best.image, quality: best.quality, prompt: parsed)
                 : []
             let final = stages.last?.image ?? best.image
-            let unsafe = try await verifier?.unsafeProbability(of: final)
-            if let unsafe, unsafe >= Self.unsafeThreshold {
-                continuation.yield(.blocked("The safety check hid this image. Try a different description."))
+            guard await safety.allows(final) else {
+                continuation.yield(.blocked(Self.refusal))
                 return
             }
             continuation.yield(.finished(SessionSummary(
                 best: best, finalImage: final, stages: stages, candidatesTried: index,
                 elapsedMs: elapsed(), firstImageMs: firstImageMs ?? 0,
-                unsafeProbability: unsafe, wasTruncated: tokens.wasTruncated
+                safetyRejections: safetyRejections, wasTruncated: tokens.wasTruncated
             )))
         } catch is CancellationError {
             return

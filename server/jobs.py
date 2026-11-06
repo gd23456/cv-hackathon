@@ -141,7 +141,7 @@ class JobManager:
         job = Job(uuid.uuid4().hex, None, "", None, now, now)
         with self.lock:
             self._finish_locked(
-                job, "refused", f"This prompt can't be generated because it asks for {category}.", "prompt_safety"
+                job, "refused", category if category.endswith(".") else f"This prompt can't be generated because it asks for {category}.", "prompt_safety"
             )
             self.jobs[job.id] = job
         return job
@@ -213,6 +213,8 @@ class JobManager:
                 job.timings.update(outcome.timings)
                 job.timings["total_ms"] = round((self.clock() - job.created) * 1000.0, 1)
                 status, err, code = outcome.status, outcome.error, outcome.code
+                if status == "refused":
+                    job.best = None
                 # Out of time with an image in hand is still a result.
                 if status == "cancelled" and job.best is not None and self.clock() - job.last_poll <= self.poll_timeout_s:
                     status, err, code = "done", None, None

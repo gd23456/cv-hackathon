@@ -14,6 +14,7 @@ MANIFEST = [
     "text_encoder.onnx.data",
     "taesd_decoder.onnx",
     "yolox.onnx",
+    "nsfw.onnx",
     "clip_vision.onnx",
     "clip_text.onnx",
     "clip_tokenizer.json",

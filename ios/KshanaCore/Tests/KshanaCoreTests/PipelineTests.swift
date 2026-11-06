@@ -197,8 +197,29 @@ private let calm = DeviceState(thermal: .nominal, lowPower: false, availableMB: 
         #expect(Planner.score(checks: pass, alignment: 0.1, quality: quality) > Planner.score(checks: fail, alignment: 0.4, quality: quality))
     }
 
-    @Test func `unsafe words are blocked as whole words`() {
-        #expect(PromptSafety.isBlocked("A NUDE person"))
-        #expect(!PromptSafety.isBlocked("a sussex spaniel"))
+    @Test(arguments: ["an ass", "a big penis", "p e n i s", "p.e.n.i.s", "p-e-n-i-s", "pen1s", "b00bs", "bigpenisphoto", "n@ked woman", "nangi ladki", "woman with no clothes", "A NUDE person", "a girl in a swimsuit"])
+    func `unsafe prompts are blocked`(prompt: String) {
+        #expect(PromptSafety.isBlocked(prompt))
+    }
+
+    @Test(arguments: ["a class of students", "a glass of water", "an assassin in a cloak", "a bass guitar", "a cocktail on a table", "data analysis chart", "a sussex spaniel", "chicken breast on a plate", "a girl reading a book", "a butterfly on a flower", "open issue tracker on a laptop", "pass the ball", "titanic ship"])
+    func `ordinary prompts are allowed`(prompt: String) {
+        #expect(!PromptSafety.isBlocked(prompt))
+    }
+
+    @Test func `text the filter can't read is refused`() {
+        #expect(PromptSafety.isUnreadable("नंगी औरत"))
+        #expect(PromptSafety.isUnreadable("🍑🍆"))
+        #expect(!PromptSafety.isUnreadable("a café in Paris"))
+    }
+
+    @Test func `the gate blocks everything until its model is loaded`() async {
+        let gate = SafetyGate(modelURL: nil)
+        #expect(await gate.allows(gradient()) == false)
+    }
+
+    @Test func `skin ratio separates skin tones from other colours`() {
+        #expect(SafetyGate.skinRatio(solid(224, 172, 140)) > 0.9)
+        #expect(SafetyGate.skinRatio(solid(20, 40, 220)) < 0.1)
     }
 }
