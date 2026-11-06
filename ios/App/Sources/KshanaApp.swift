@@ -7,7 +7,17 @@ struct KshanaApp: App {
     var body: some Scene {
         WindowGroup {
             CreateView(studio: studio)
-                .task { await studio.prepare() }
+                .task {
+                    if CommandLine.arguments.contains("--plan") {
+                        await studio.runPlanReport()
+                        exit(0)
+                    }
+                    await studio.prepare()
+                    if CommandLine.arguments.contains("--bench") {
+                        await studio.runBenchmark()
+                        exit(0)
+                    }
+                }
         }
     }
 }

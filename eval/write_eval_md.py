@@ -1,0 +1,120 @@
+#!/usr/bin/env python
+"""Numbers section of eval_P3_T78.md, from results/*.csv only. Unmeasured items stay as TODO; no prose is generated.
+
+    python eval/write_eval_md.py
+
+Writes results/eval_P3_T78.md. Line 1 is exactly the USNs. Commentary is written by the human team.
+"""
+import csv
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from common import COREML, RESULTS  # noqa: E402
+
+USNS = "1RUA24CSE0146,1RUA24CSE0201,1RUA24CSE0139,1RUA24CSE0196"
+TODO = "TODO: not measured yet"
+
+
+def read(name: str) -> list[dict]:
+    path = RESULTS / name
+    if not path.exists():
+        return []
+    with open(path, newline="") as f:
+        return list(csv.DictReader(f))
+
+
+def table(headers: list[str], rows: list[list]) -> list[str]:
+    lines = ["| " + " | ".join(headers) + " |", "|" + "---|" * len(headers)]
+    lines += ["| " + " | ".join(str(c) if c not in (None, "") else TODO for c in r) + " |" for r in rows]
+    return lines + [""]
+
+
+def ci(r: dict) -> str:
+    return f"{r['clip_l14']} [{r['clip_l14_ci95_lo']}, {r['clip_l14_ci95_hi']}]"
+
+
+def clip_section(metrics: list[dict]) -> list[str]:
+    rows = [[r["config"], r["split"], r["n"], ci(r), r["clip_b32_cos"], r["hardware"], r["engine"]] for r in metrics]
+    return ["## 1. CLIP similarity", "",
+            "Headline ViT-L/14 via torchmetrics, max(100 x cos, 0), against the original prompt, with bootstrap 95% CI. ViT-B/32 is raw cosine.", "",
+            *table(["Config", "Prompts", "n", "CLIP ViT-L/14", "CLIP ViT-B/32 cosine", "Hardware", "Engine"], rows),
+            f"iPhone 15: {TODO} (quality is measured on M4 with the same Core ML models; device output not yet compared).", ""]
+
+
+def fid_section(metrics: list[dict]) -> list[str]:
+    five = [r for r in metrics if r["fid"]]
+    rows = [[r["config"], r["n"], r["fid"], r["hardware"], r["engine"]] for r in five]
+    kid = [r for r in metrics if r["kid_x1000"] or r["cmmd_l14_x1000"]]
+    lines = ["## 2. FID", "", "clean-fid clean mode, PNG, 5,000 generated vs the same 5,000 COCO val2017 references (center crop, 512 Lanczos).", ""]
+    lines += table(["Config", "n", "FID", "Hardware", "Engine"], rows) if rows else [f"FID at 5k: {TODO}", ""]
+    if kid:
+        lines += ["KID and CMMD are for ablations; FID is not reported below 5k. CMMD uses ViT-L/14 at 224, the paper uses 336.", ""]
+        lines += table(["Config", "n", "KID x 1000", "CMMD x 1000"], [[r["config"], r["n"], r["kid_x1000"], r["cmmd_l14_x1000"]] for r in kid])
+    return lines
+
+
+def latency_section(latency: list[dict]) -> list[str]:
+    rows = [[r["config"], r["hardware"], r["engine"], r["n_warm"], r["warm_mean_ms"], r["warm_p50_ms"], r["warm_p95_ms"], r["text_ms"], r["unet_ms"], r["decoder_ms"], r["cold_to_first_image_s_mean"]] for r in latency]
+    return ["## 3. Image generation latency", "",
+            *table(["Config", "Hardware", "Engine", "Warm n", "Mean ms", "p50 ms", "p95 ms", "Text ms", "UNet ms", "Decoder ms", "Cold to first image s"], rows),
+            f"iPhone 15, warm and cold: {TODO} (from the app).", "", f"Modal: {TODO}", ""]
+
+
+def memory_section(latency: list[dict]) -> list[str]:
+    rows = [[r["config"], r["hardware"], r["engine"], r["process_maxrss_MB"], r["aned_service_rss_MB"]] for r in latency]
+    return ["## 4. Peak memory consumption", "",
+            *table(["Config", "Hardware", "Engine", "Process max RSS MB (excludes Neural Engine service)", "Neural Engine service RSS MB"], rows),
+            f"iPhone 15, phys_footprint, with iOS version: {TODO} (from the app).", ""]
+
+
+def size_section() -> list[str]:
+    import json
+
+    rows = []
+    for manifest_path in sorted(COREML.glob("*/manifest.json")):
+        m = json.loads(manifest_path.read_text())
+        for name, c in m["components"].items():
+            rows.append([m["model"], name, round(c["compiled_bytes"] / 2**20, 1), round(c["compiled_bytes"] / 1e6, 1)])
+        for variant, v in m["variants"].items():
+            rows.append([m["model"], f"**variant {variant} total**", v["compiled_MiB"], v["compiled_MB"]])
+    return ["## 5. Model size", "", "Compiled Core ML, generator only.", "",
+            *table(["Model", "Component", "MiB", "MB"], rows),
+            f"With verifier on iPhone: {TODO}", f"", f"Baselines B0 and B1 on disk: {TODO}", ""]
+
+
+def quality_cost_section(metrics: list[dict], latency: list[dict]) -> list[str]:
+    by_config = {r["config"]: r for r in latency}
+    rows = [[r["config"], ci(r), by_config.get(r["config"], {}).get("warm_mean_ms"), by_config.get(r["config"], {}).get("size_MiB"), r["steps"], r["hardware"]]
+            for r in metrics if r["split"] == "coco_1k"]
+    lines = ["## 6. Quality versus computational cost", "",
+             *table(["Config", "CLIP ViT-L/14", "Mean latency ms", "Size MiB", "UNet calls", "Hardware"], rows)]
+    for name in ("pareto_latency.png", "pareto_size.png", "e1.png", "ablation_classical.png"):
+        lines += [f"![{name}]({name})", ""] if (RESULTS / name).exists() else [f"{name}: {TODO}", ""]
+    e1 = read("e1.csv")
+    if e1:
+        lines += ["E1, UNet calls per final image.", ""]
+        lines += table(["Split", "C", "Method", "Prompts", "CLIP ViT-L/14", "Count", "Position", "Colour", "All checks", "Engine"],
+                       [[r["split"], r["C_unet_calls"], r["method"], r["prompts"], r["clip_l14"], r.get("count_rate"), r.get("position_rate"), r.get("color_rate"), r.get("correct_rate"), r["engine"]] for r in e1])
+    else:
+        lines += [f"E1: {TODO}", ""]
+    complex_rows = read("complex_scores.csv")
+    if complex_rows:
+        lines += ["Complex prompts, GenEval rules with DETR-R101 boxes. Not comparable with published GenEval numbers.", ""]
+        lines += table(["Config", "Split", "Tag", "Accuracy", "n"], [[r["config"], r["split"], r["tag"], r["accuracy"], r["n"]] for r in complex_rows])
+    else:
+        lines += [f"Complex prompts: {TODO}", ""]
+    lines += [f"Hand labels, about 100 images: {TODO} (team fills results/hand_labels/*.csv).", ""]
+    return lines
+
+
+def main() -> None:
+    metrics, latency = read("generator_metrics.csv"), read("latency.csv")
+    lines = [USNS, "", *clip_section(metrics), *fid_section(metrics), *latency_section(latency), *memory_section(latency), *size_section(), *quality_cost_section(metrics, latency)]
+    out = RESULTS / "eval_P3_T78.md"
+    out.write_text("\n".join(lines))
+    print(out)
+
+
+if __name__ == "__main__":
+    main()

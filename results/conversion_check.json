@@ -1,0 +1,71 @@
+{
+ "engine": "Core ML CPU_AND_NE on M4; PyTorch fp32 CPU reference",
+ "summary": {
+  "A": {
+   "psnr_vs_spike_mean": 99.0,
+   "psnr_vs_torch_mean": 28.81
+  },
+  "FP16": {
+   "psnr_vs_spike_mean": 99.0,
+   "psnr_vs_torch_mean": 38.33
+  }
+ },
+ "rows": [
+  {
+   "variant": "A",
+   "seed": 42,
+   "psnr_vs_spike": 99.0,
+   "psnr_vs_torch": 26.74,
+   "md5": "1962bcf0c8"
+  },
+  {
+   "variant": "A",
+   "seed": 43,
+   "psnr_vs_spike": 99.0,
+   "psnr_vs_torch": 24.79,
+   "md5": "ed1e8101d4"
+  },
+  {
+   "variant": "A",
+   "seed": 44,
+   "psnr_vs_spike": 99.0,
+   "psnr_vs_torch": 31.18,
+   "md5": "14ad120a11"
+  },
+  {
+   "variant": "A",
+   "seed": 45,
+   "psnr_vs_spike": 99.0,
+   "psnr_vs_torch": 32.54,
+   "md5": "59a70701aa"
+  },
+  {
+   "variant": "FP16",
+   "seed": 42,
+   "psnr_vs_spike": 99.0,
+   "psnr_vs_torch": 31.91,
+   "md5": "c77288a300"
+  },
+  {
+   "variant": "FP16",
+   "seed": 43,
+   "psnr_vs_spike": 99.0,
+   "psnr_vs_torch": 38.23,
+   "md5": "1109bcfc75"
+  },
+  {
+   "variant": "FP16",
+   "seed": 44,
+   "psnr_vs_spike": 99.0,
+   "psnr_vs_torch": 39.98,
+   "md5": "3fadfa0528"
+  },
+  {
+   "variant": "FP16",
+   "seed": 45,
+   "psnr_vs_spike": 99.0,
+   "psnr_vs_torch": 43.19,
+   "md5": "d4fdda369c"
+  }
+ ]
+}
