@@ -17,10 +17,14 @@ xcodebuild -project Kshana.xcodeproj -scheme Kshana -configuration Release \
   -allowProvisioningUpdates -allowProvisioningDeviceRegistration \
   DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic build 2>&1 |
   grep -E 'error:|BUILD (SUCCEEDED|FAILED)'
-# Each install gets a new bundle path, and Core ML keeps about 1 GB of compiled
-# Neural Engine cache per path in the app's data, so clear it to avoid filling the phone.
-xcrun devicectl device uninstall app --device "$DEVICE" "$BUNDLE" >/dev/null 2>&1 || true
-xcrun devicectl device install app --device "$DEVICE" "$DERIVED/Build/Products/Release-iphoneos/Kshana.app" >/dev/null
+# Don't uninstall here: removing a free account's last app also removes its trust.
+# The app clears its own stale Neural Engine cache after a reinstall.
+attempt=0
+until xcrun devicectl device install app --device "$DEVICE" "$DERIVED/Build/Products/Release-iphoneos/Kshana.app" >/dev/null 2>&1; do
+  attempt=$((attempt + 1))
+  [ "$attempt" -lt 4 ] || { echo "Install failed: check storage and that the phone is unlocked" >&2; exit 1; }
+  sleep 10
+done
 echo "installed"
 
 if [ "${1:-}" = "--bench" ]; then

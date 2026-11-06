@@ -68,11 +68,25 @@ final class Studio {
         phase == .ready && !prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    /// Every reinstall gets a new bundle path, and Core ML keeps about 1 GB of compiled
+    /// Neural Engine cache per path. Old entries never get reused, so remove them.
+    private func clearStaleModelCache() {
+        let key = "lastBundlePath"
+        let path = Bundle.main.bundlePath
+        guard UserDefaults.standard.string(forKey: key) != path else { return }
+        if UserDefaults.standard.string(forKey: key) != nil,
+           let identifier = Bundle.main.bundleIdentifier {
+            try? FileManager.default.removeItem(at: URL.cachesDirectory.appending(path: identifier))
+        }
+        UserDefaults.standard.set(path, forKey: key)
+    }
+
     func prepare() async {
         guard let generator else {
             phase = .failed("The models are missing from this build.")
             return
         }
+        clearStaleModelCache()
         // Compiling models on a nearly full phone can end the app, so check first.
         let free = (try? URL.documentsDirectory.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey]))?
             .volumeAvailableCapacityForImportantUsage ?? .max
