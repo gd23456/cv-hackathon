@@ -17,6 +17,9 @@ xcodebuild -project Kshana.xcodeproj -scheme Kshana -configuration Release \
   -allowProvisioningUpdates -allowProvisioningDeviceRegistration \
   DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic build 2>&1 |
   grep -E 'error:|BUILD (SUCCEEDED|FAILED)'
+# Each install gets a new bundle path, and Core ML keeps about 1 GB of compiled
+# Neural Engine cache per path in the app's data, so clear it to avoid filling the phone.
+xcrun devicectl device uninstall app --device "$DEVICE" "$BUNDLE" >/dev/null 2>&1 || true
 xcrun devicectl device install app --device "$DEVICE" "$DERIVED/Build/Products/Release-iphoneos/Kshana.app" >/dev/null
 echo "installed"
 

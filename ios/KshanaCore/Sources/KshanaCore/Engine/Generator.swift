@@ -28,6 +28,12 @@ public struct LoadReport: Sendable {
     public var totalMs: Double { textMs + unetMs + decoderMs }
 }
 
+public struct AccelerationReport: Sendable {
+    public let unetMs: Double
+    public let reloads: Int
+    public let isAccelerated: Bool
+}
+
 public struct GenerationTimings: Sendable {
     public var textMs: Double
     public var unetMs: Double
@@ -106,6 +112,27 @@ public actor Generator {
         let config = MLModelConfiguration()
         config.computeUnits = units ?? computeUnits
         return try MLModel(contentsOf: fileURL(location.models, name), configuration: config)
+    }
+
+    /// Core ML can silently fall back to the CPU if Neural Engine setup fails, which
+    /// is about 13x slower with no error raised. This times the model, reloads it if
+    /// it fell back, and reports whether it ended up accelerated.
+    public func ensureAccelerated(thresholdMs: Double = 300, retries: Int = 2) throws -> AccelerationReport {
+        var attempts = 0
+        var unetMs = try probeUNetMs()
+        while unetMs > thresholdMs, attempts < retries {
+            attempts += 1
+            unet = nil
+            unet = try loadModel("UNet.mlmodelc")
+            unetMs = try probeUNetMs()
+        }
+        return AccelerationReport(unetMs: unetMs, reloads: attempts, isAccelerated: unetMs <= thresholdMs)
+    }
+
+    /// The first call pays for lazy setup, so only the second is timed.
+    private func probeUNetMs() throws -> Double {
+        _ = try generate(prompt: "a photo", seed: 1)
+        return try generate(prompt: "a photo", seed: 2).timings.unetMs
     }
 
     /// Releases model memory, e.g. on a system memory warning.

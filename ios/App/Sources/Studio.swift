@@ -26,6 +26,7 @@ final class Studio {
     private(set) var completedRuns = 0
     private(set) var loadReport: LoadReport?
     private(set) var verifierAvailable = false
+    private(set) var acceleration: AccelerationReport?
     private(set) var benchmark: BenchmarkResult?
     private(set) var isBenchmarking = false
     private(set) var device = DeviceSnapshot.current
@@ -84,12 +85,20 @@ final class Studio {
             loadReport = try await generator.load { [weak self] stage in
                 Task { @MainActor in self?.phase = .preparing(stage) }
             }
+            phase = .preparing("Neural Engine check")
+            let acceleration = try await generator.ensureAccelerated()
+            self.acceleration = acceleration
+            if !acceleration.isAccelerated {
+                notice = "The Neural Engine isn't available right now, so images take about a second each. Reopening Kshana may fix this."
+            }
             phase = .preparing("Checks")
             do {
                 try await verifier?.load()
                 verifierAvailable = verifier != nil
+                FileHandle.standardOutput.write(Data("verifier loaded: \(verifierAvailable)\n".utf8))
             } catch {
                 logger.error("verifier unavailable: \(String(describing: error), privacy: .public)")
+                FileHandle.standardOutput.write(Data("verifier unavailable: \(error)\n".utf8))
                 notice = "Checks are off because their models couldn't load. Images still work."
             }
             refreshDevice()
@@ -155,6 +164,7 @@ final class Studio {
 
     func handleMemoryWarning() {
         logger.notice("memory warning: releasing the verifier")
+        FileHandle.standardOutput.write(Data("memory warning, available \(DeviceSnapshot.current.availableMB) MB\n".utf8))
         generationTask?.cancel()
         if phase == .generating { phase = .ready }
         verifierAvailable = false
@@ -199,11 +209,15 @@ final class Studio {
         if let load = loadReport {
             log(String(format: "load ms: text %.0f, unet %.0f, decoder %.0f, total %.0f", load.textMs, load.unetMs, load.decoderMs, load.totalMs))
         }
+        if let acceleration {
+            log(String(format: "acceleration: unet %.1f ms, reloads %d, accelerated %@", acceleration.unetMs, acceleration.reloads, acceleration.isAccelerated ? "yes" : "NO"))
+        }
         refreshDevice()
         log(String(format: "after load MB: footprint %.0f, peak %.0f, available %.0f", device.footprintMB, device.peakMB, device.availableMB))
 
         do {
-            let result = try await BenchmarkResult.measure(generator: generator, runs: 12)
+            let quick = CommandLine.arguments.contains("--quick")
+            let result = try await BenchmarkResult.measure(generator: generator, runs: quick ? 6 : 12)
             log(result.summaryLine)
         } catch {
             log("generator benchmark FAILED: \(error)")
@@ -215,7 +229,7 @@ final class Studio {
             "a golden retriever puppy sitting on green grass, sunny day",
             "a mountain lake at sunset",
         ]
-        for (i, text) in prompts.enumerated() {
+        for (i, text) in prompts.prefix(CommandLine.arguments.contains("--quick") ? 1 : prompts.count).enumerated() {
             for await event in session.run(prompt: text, budget: .best, baseSeed: 5000 + UInt64(i) * 100) {
                 switch event {
                 case .planned(_, let plan):

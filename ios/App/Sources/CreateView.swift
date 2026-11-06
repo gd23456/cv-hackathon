@@ -33,7 +33,7 @@ struct CreateView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Label("On this iPhone", systemImage: "iphone.gen3")
+                    Label(studio.acceleration?.isAccelerated == false ? "On this iPhone, CPU" : "On this iPhone", systemImage: "iphone.gen3")
                         .labelStyle(.titleAndIcon)
                         .font(.caption)
                         .foregroundStyle(.secondary)

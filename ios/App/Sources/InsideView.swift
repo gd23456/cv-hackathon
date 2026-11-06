@@ -17,6 +17,9 @@ struct InsideView: View {
                     if let load = studio.loadReport {
                         row("Model load", String(format: "%.1f s", load.totalMs / 1000))
                     }
+                    if let acceleration = studio.acceleration {
+                        row("Runs on", acceleration.isAccelerated ? "Neural Engine" : "CPU (slower)")
+                    }
                 }
 
                 if let summary = studio.summary {

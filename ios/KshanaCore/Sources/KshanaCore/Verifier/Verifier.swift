@@ -24,6 +24,7 @@ public struct Verification: Sendable {
 /// On-device checking: Apple's YOLOv3-Tiny, MobileCLIP S0 and an NSFW classifier.
 public actor Verifier {
     private let location: VerifierLocation
+    private let computeUnits: MLComputeUnits
     private var detector: VNCoreMLModel?
     private var safety: VNCoreMLModel?
     private var imageEncoder: MLModel?
@@ -31,15 +32,16 @@ public actor Verifier {
     private var tokenizer: BPETokenizer?
     private var cachedText: (prompt: String, embedding: [Float])?
 
-    public init(location: VerifierLocation) {
+    public init(location: VerifierLocation, computeUnits: MLComputeUnits = .cpuAndNeuralEngine) {
         self.location = location
+        self.computeUnits = computeUnits
     }
 
     public var isLoaded: Bool { detector != nil && imageEncoder != nil && textEncoder != nil }
 
     public func load() throws {
         let config = MLModelConfiguration()
-        config.computeUnits = .cpuAndNeuralEngine
+        config.computeUnits = computeUnits
         func url(_ name: String) throws -> URL {
             let url = location.directory.appendingPathComponent(name)
             guard FileManager.default.fileExists(atPath: url.path) else { throw GeneratorError.fileMissing(name) }
