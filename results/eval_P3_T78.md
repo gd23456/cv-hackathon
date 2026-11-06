@@ -6,11 +6,17 @@ Headline ViT-L/14 via torchmetrics, max(100 x cos, 0), against the original prom
 
 | Config | Prompts | n | CLIP ViT-L/14 | CLIP ViT-B/32 cosine | Hardware | Engine |
 |---|---|---|---|---|---|---|
+| S1-A | coco_5k | 5000 | 26.721 [26.632, 26.811] | 0.3122 | Apple M4 | Core ML (coremltools 9.0), CPU_AND_NE |
 | S1-A | coco_1k | 1000 | 26.637 [26.438, 26.841] | 0.312 | Apple M4 | Core ML (coremltools 9.0), CPU_AND_NE |
 | S1-FP16 | coco_1k | 1000 | 26.643 [26.44, 26.85] | 0.3119 | Apple M4 | Core ML (coremltools 9.0), CPU_AND_NE |
 | S0.9-FP16 | coco_1k | 1000 | 26.194 [25.999, 26.388] | 0.3128 | Apple M4 | Core ML (coremltools 9.0), CPU_AND_NE |
+| B1 | coco_1k | 1000 | 26.176 [25.983, 26.369] | 0.3147 | Apple M4 | PyTorch 2.7 MPS, fp32 compute |
 
-Flickr30K, separate protocol: TODO: not measured yet
+Flickr30K, separate protocol: official 1k test captions, own real-image reference. Not comparable with the COCO rows.
+
+| Config | Prompts | n | CLIP ViT-L/14 | CLIP ViT-B/32 cosine | Hardware | Engine |
+|---|---|---|---|---|---|---|
+| S1-A | flickr_1k | 1000 | 27.83 [27.607, 28.06] | 0.3247 | Apple M4 | Core ML (coremltools 9.0), CPU_AND_NE |
 
 iPhone 15: TODO: not measured yet (quality is measured on M4 with the same Core ML models; device output not yet compared).
 
@@ -18,20 +24,34 @@ iPhone 15: TODO: not measured yet (quality is measured on M4 with the same Core 
 
 clean-fid clean mode, PNG, 5,000 generated vs the same 5,000 COCO val2017 references (center crop, 512 Lanczos).
 
-FID at 5k: TODO: not measured yet
+| Config | n | FID | Hardware | Engine |
+|---|---|---|---|---|
+| S1-A | 5000 | 32.356 | Apple M4 | Core ML (coremltools 9.0), CPU_AND_NE |
 
 KID and CMMD are for ablations; FID is not reported below 5k. CMMD uses ViT-L/14 at 224, the paper uses 336.
 
 | Config | Split | n | KID x 1000 | CMMD x 1000 |
 |---|---|---|---|---|
+| S1-A | coco_5k | 5000 | 6.788 | 0.783 |
 | S1-A | coco_1k | 1000 | 6.93 | 0.769 |
 | S1-FP16 | coco_1k | 1000 | 6.972 | 0.765 |
 | S0.9-FP16 | coco_1k | 1000 | 8.808 | 0.643 |
+| B1 | coco_1k | 1000 | 6.963 | 0.459 |
+
+Flickr30K, separate protocol: KID against 1,000 Flickr30K test images, preprocessed the same way. No FID below 5k. Not comparable with the COCO rows.
+
+| Config | Split | n | KID x 1000 |
+|---|---|---|---|
+| S1-A | flickr_1k | 1000 | 12.54 |
 
 ## 3. Image generation latency
 
 | Config | Hardware | Engine | Warm n | Mean ms | p50 ms | p95 ms | Text ms | UNet ms | Decoder ms | Cold to first image s |
 |---|---|---|---|---|---|---|---|---|---|---|
+| S1-A | Apple M4 | Core ML (coremltools 9.0), CPU_AND_NE | 200 | 57.5 | 57.5 | 59.0 | 2.8 | 45.6 | 9.1 | 4.15 |
+| S1-FP16 | Apple M4 | Core ML (coremltools 9.0), CPU_AND_NE | 200 | 63.8 | 63.7 | 65.0 | 3.3 | 51.4 | 9.1 | 2.79 |
+| S0.9-FP16 | Apple M4 | Core ML (coremltools 9.0), CPU_AND_NE | 200 | 84.4 | 84.2 | 87.5 | 10.5 | 64.7 | 9.2 | 5.3 |
+| B1 | Apple M4 | PyTorch 2.7 MPS, fp32 compute | 30 | 1364.8 | 1364.4 | 1391.5 | TODO: not measured yet | TODO: not measured yet | TODO: not measured yet | 8.01 |
 
 | iPhone measure | Value | Device | OS | Config | Conditions | Source |
 |---|---|---|---|---|---|---|
@@ -55,6 +75,10 @@ Modal: TODO: not measured yet
 
 | Config | Hardware | Engine | Process max RSS MB (excludes Neural Engine service) | Neural Engine service RSS MB |
 |---|---|---|---|---|
+| S1-A | Apple M4 | Core ML (coremltools 9.0), CPU_AND_NE | 730.0 | 6.3 |
+| S1-FP16 | Apple M4 | Core ML (coremltools 9.0), CPU_AND_NE | 664.0 | 8.6 |
+| S0.9-FP16 | Apple M4 | Core ML (coremltools 9.0), CPU_AND_NE | 1048.0 | 11.0 |
+| B1 | Apple M4 | PyTorch 2.7 MPS, fp32 compute | 7009.0 | 3.2 |
 
 | iPhone measure | Value | Device | OS | Config | Conditions | Source |
 |---|---|---|---|---|---|---|
@@ -84,6 +108,7 @@ With verifier on iPhone: TODO: not measured yet
 
 | Baseline | MiB | MB |
 |---|---|---|
+| B0, SD 1.5 fp16 weights | 2033.8 | 2132.6 |
 | B1, SD-Turbo fp16 weights | 2460.5 | 2580.1 |
 
 
@@ -91,9 +116,10 @@ With verifier on iPhone: TODO: not measured yet
 
 | Config | CLIP ViT-L/14 | Mean latency ms | Size MiB | UNet calls | Hardware |
 |---|---|---|---|---|---|
-| S1-A | 26.637 [26.438, 26.841] | TODO: not measured yet | TODO: not measured yet | 1 | Apple M4 |
-| S1-FP16 | 26.643 [26.44, 26.85] | TODO: not measured yet | TODO: not measured yet | 1 | Apple M4 |
-| S0.9-FP16 | 26.194 [25.999, 26.388] | TODO: not measured yet | TODO: not measured yet | 1 | Apple M4 |
+| S1-A | 26.637 [26.438, 26.841] | 57.5 | 448.0 | 1 | Apple M4 |
+| S1-FP16 | 26.643 [26.44, 26.85] | 63.8 | 819.6 | 1 | Apple M4 |
+| S0.9-FP16 | 26.194 [25.999, 26.388] | 84.4 | 1258.1 | 1 | Apple M4 |
+| B1 | 26.176 [25.983, 26.369] | 1364.8 | 2460.5 | 1 | Apple M4 |
 
 pareto_latency.png: TODO: not measured yet
 
