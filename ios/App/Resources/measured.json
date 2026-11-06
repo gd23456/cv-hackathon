@@ -1,0 +1,10 @@
+[
+  {
+    "name": "Kshana, 8-bit",
+    "device": "iPhone 15, iOS 26.5, Neural Engine",
+    "latencyMs": 82,
+    "sizeMB": 448,
+    "peakMB": 1198,
+    "note": "Generator only, 512 px. Measured over 12 runs; verifier not included."
+  }
+]

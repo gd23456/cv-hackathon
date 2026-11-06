@@ -16,24 +16,55 @@ final class Studio {
 
     private(set) var phase: Phase = .preparing("Starting")
     private(set) var image: UIImage?
-    private(set) var timings: GenerationTimings?
+    private(set) var parsed: ParsedPrompt?
+    private(set) var plan: PlanDecision?
+    private(set) var checks: [CheckResult] = []
+    private(set) var triedCount = 0
+    private(set) var latest: CandidateResult?
+    private(set) var summary: SessionSummary?
+    private(set) var notice: String?
+    private(set) var completedRuns = 0
     private(set) var loadReport: LoadReport?
-    private(set) var footprintMB: Double = 0
-    private(set) var peakMB: Double = 0
-    private(set) var availableMB: Double = 0
-    var prompt = "a red apple to the left of a blue cup on a wooden table"
+    private(set) var verifierAvailable = false
+    private(set) var benchmark: BenchmarkResult?
+    private(set) var isBenchmarking = false
+    private(set) var device = DeviceSnapshot.current
+
+    var prompt = ""
+    var budget: Budget = .auto
 
     private let logger = Logger(subsystem: "com.gourabdash.kshana", category: "studio")
     private let generator: Generator?
-    private var nextSeed: UInt64 = 42
+    private let verifier: Verifier?
+    private let session: GenerationSession?
+    private let textOnCPU = CommandLine.arguments.contains("--text-cpu")
+    private var generationTask: Task<Void, Never>?
+    private var nextSeed = UInt64(Date.now.timeIntervalSince1970)
 
     init() {
-        if let models = Bundle.main.url(forResource: "Models", withExtension: nil),
-           let tokenizer = Bundle.main.url(forResource: "Tokenizer", withExtension: nil) {
-            generator = Generator(location: ModelLocation(models: models, tokenizer: tokenizer))
-        } else {
-            generator = nil
+        let bundle = Bundle.main
+        let useCPUForText = CommandLine.arguments.contains("--text-cpu")
+        guard
+            let models = bundle.url(forResource: "Models", withExtension: nil),
+            let tokenizer = bundle.url(forResource: "Tokenizer", withExtension: nil)
+        else {
+            (generator, verifier, session) = (nil, nil, nil)
+            return
         }
+        let generator = Generator(
+            location: ModelLocation(models: models, tokenizer: tokenizer),
+            textComputeUnits: useCPUForText ? .cpuOnly : .cpuAndNeuralEngine
+        )
+        let verifier = bundle.url(forResource: "Verifier", withExtension: nil).map {
+            Verifier(location: VerifierLocation(directory: $0, tokenizer: tokenizer))
+        }
+        self.generator = generator
+        self.verifier = verifier
+        session = GenerationSession(generator: generator, verifier: verifier)
+    }
+
+    var canGenerate: Bool {
+        phase == .ready && !prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     func prepare() async {
@@ -41,84 +72,174 @@ final class Studio {
             phase = .failed("The models are missing from this build.")
             return
         }
-        refreshMemory()
-        logger.notice("available before load: \(self.availableMB, format: .fixed(precision: 0)) MB")
+        // Compiling models on a nearly full phone can end the app, so check first.
+        let free = (try? URL.documentsDirectory.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey]))?
+            .volumeAvailableCapacityForImportantUsage ?? .max
+        guard free > 500_000_000 else {
+            FileHandle.standardOutput.write(Data("low storage: \(free / 1_000_000) MB free\n".utf8))
+            phase = .failed("This iPhone is almost full. Free up at least 500 MB, then open Kshana again.")
+            return
+        }
         do {
-            let report = try await generator.load { [weak self] stage in
+            loadReport = try await generator.load { [weak self] stage in
                 Task { @MainActor in self?.phase = .preparing(stage) }
             }
-            loadReport = report
-            refreshMemory()
-            logger.notice("loaded in \(report.totalMs, format: .fixed(precision: 0)) ms, footprint \(self.footprintMB, format: .fixed(precision: 0)) MB")
+            phase = .preparing("Checks")
+            do {
+                try await verifier?.load()
+                verifierAvailable = verifier != nil
+            } catch {
+                logger.error("verifier unavailable: \(String(describing: error), privacy: .public)")
+                notice = "Checks are off because their models couldn't load. Images still work."
+            }
+            refreshDevice()
             phase = .ready
         } catch {
             logger.error("load failed: \(String(describing: error), privacy: .public)")
-            phase = .failed("Could not load the models: \(error)")
+            phase = .failed("Couldn't load the models. Close Kshana and try again.")
         }
     }
 
-    func generate() async {
-        guard let generator, phase == .ready else { return }
+    func generate() {
+        guard canGenerate, let session else { return }
+        generationTask?.cancel()
         phase = .generating
+        checks = []
+        triedCount = 0
+        summary = nil
+        notice = nil
+        plan = nil
         let seed = nextSeed
-        nextSeed &+= 1
-        do {
-            let candidate = try await generator.generate(prompt: prompt, seed: seed)
-            image = candidate.image.cgImage.map(UIImage.init(cgImage:))
-            timings = candidate.timings
-            refreshMemory()
-            let t = candidate.timings
-            logger.notice("seed \(seed): text \(t.textMs, format: .fixed(precision: 1)) unet \(t.unetMs, format: .fixed(precision: 1)) decode \(t.decodeMs, format: .fixed(precision: 1)) footprint \(self.footprintMB, format: .fixed(precision: 0)) peak \(self.peakMB, format: .fixed(precision: 0))")
-            phase = .ready
-        } catch {
-            logger.error("generate failed: \(String(describing: error), privacy: .public)")
-            phase = .failed("Generation failed: \(error)")
+        nextSeed &+= 1000
+        let stream = session.run(prompt: prompt, budget: budget, baseSeed: seed)
+        generationTask = Task {
+            for await event in stream { handle(event) }
+            if phase == .generating { phase = .ready }
+            refreshDevice()
         }
     }
 
-    /// Measures this device end to end and saves results to Documents:
-    /// `bench.txt`, plus the images, for retrieval over USB.
-    func runBenchmark(runs: Int = 12) async {
-        guard let generator else { return }
+    private func handle(_ event: SessionEvent) {
+        switch event {
+        case .planned(let parsed, let plan):
+            self.parsed = parsed
+            self.plan = plan
+        case .candidate(let candidate):
+            triedCount = candidate.index + 1
+            latest = candidate
+            if candidate.isBest {
+                image = candidate.image.cgImage.map(UIImage.init(cgImage:))
+                checks = candidate.checks
+            }
+        case .finished(let summary):
+            self.summary = summary
+            image = summary.finalImage.cgImage.map(UIImage.init(cgImage:))
+            checks = summary.best.checks
+            completedRuns += 1
+            if summary.wasTruncated {
+                notice = "Only the first 77 tokens of a long description were used."
+            }
+            phase = .ready
+        case .blocked(let message), .failed(let message):
+            image = nil
+            notice = message
+            phase = .ready
+        }
+    }
+
+    /// Generation can't continue in the background, so stop cleanly.
+    func cancelForBackground() {
+        generationTask?.cancel()
+        if phase == .generating { phase = .ready }
+    }
+
+    func handleMemoryWarning() {
+        logger.notice("memory warning: releasing the verifier")
+        generationTask?.cancel()
+        if phase == .generating { phase = .ready }
+        verifierAvailable = false
+        notice = "Memory is low, so checks were turned off for now."
+        Task { await verifier?.unload() }
+    }
+
+    /// A larger copy for saving, resampled with Lanczos.
+    func exportImage() -> UIImage? {
+        guard let summary, let large = try? ImageOps.resized(summary.finalImage, width: 1024, height: 1024) else { return image }
+        return large.cgImage.map(UIImage.init(cgImage:))
+    }
+
+    func refreshDevice() {
+        device = .current
+    }
+
+    // MARK: - Benchmarks
+
+    func runBenchmark() async {
+        guard let generator, !isBenchmarking else { return }
+        isBenchmarking = true
+        defer { isBenchmarking = false }
+        benchmark = try? await BenchmarkResult.measure(generator: generator, runs: 20)
+        refreshDevice()
+    }
+
+    /// Headless run for collecting real numbers over USB: `--bench`.
+    func runCommandLineBenchmark() async {
+        guard let generator, let session else { return }
         let documents = URL.documentsDirectory
-        let prompts = [
-            "a red apple to the left of a blue cup on a wooden table",
-            "a close-up picture of an old man standing in the rain",
-            "a golden retriever puppy sitting on green grass, sunny day",
-        ]
         var report = ""
         func log(_ line: String) {
             report += line + "\n"
             FileHandle.standardOutput.write(Data((line + "\n").utf8))
         }
 
-        let version = ProcessInfo.processInfo.operatingSystemVersionString
-        log("device iOS \(version), RAM \(ProcessInfo.processInfo.physicalMemory / 1_048_576) MB, thermal \(ProcessInfo.processInfo.thermalState.rawValue), low power \(ProcessInfo.processInfo.isLowPowerModeEnabled)")
+        let info = ProcessInfo.processInfo
+        let freeMB = ((try? documents.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey]))?.volumeAvailableCapacityForImportantUsage ?? 0) / 1_000_000
+        log("storage free \(freeMB) MB")
+        log("device iOS \(info.operatingSystemVersionString), RAM \(info.physicalMemory / 1_048_576) MB, thermal \(info.thermalState.rawValue), low power \(info.isLowPowerModeEnabled), text-cpu \(textOnCPU)")
         if let load = loadReport {
             log(String(format: "load ms: text %.0f, unet %.0f, decoder %.0f, total %.0f", load.textMs, load.unetMs, load.decoderMs, load.totalMs))
         }
-        refreshMemory()
-        log(String(format: "after load MB: footprint %.0f, peak %.0f, available %.0f", footprintMB, peakMB, availableMB))
+        refreshDevice()
+        log(String(format: "after load MB: footprint %.0f, peak %.0f, available %.0f", device.footprintMB, device.peakMB, device.availableMB))
 
-        for run in 0..<runs {
-            do {
-                let prompt = prompts[run % prompts.count]
-                let candidate = try await generator.generate(prompt: prompt, seed: 1000 + UInt64(run))
-                let t = candidate.timings
-                refreshMemory()
-                log(String(format: "run %d ms: text %.1f, unet %.1f, decode %.1f, total %.1f | MB footprint %.0f, peak %.0f, available %.0f | thermal %d", run, t.textMs, t.unetMs, t.decodeMs, t.totalMs, footprintMB, peakMB, availableMB, ProcessInfo.processInfo.thermalState.rawValue))
-                if run < prompts.count {
-                    try candidate.image.writePNG(to: documents.appending(path: "bench_\(run).png"))
+        do {
+            let result = try await BenchmarkResult.measure(generator: generator, runs: 12)
+            log(result.summaryLine)
+        } catch {
+            log("generator benchmark FAILED: \(error)")
+        }
+
+        let prompts = [
+            "a red apple to the left of a blue cup on a wooden table",
+            "two dogs sitting on a couch",
+            "a golden retriever puppy sitting on green grass, sunny day",
+            "a mountain lake at sunset",
+        ]
+        for (i, text) in prompts.enumerated() {
+            for await event in session.run(prompt: text, budget: .best, baseSeed: 5000 + UInt64(i) * 100) {
+                switch event {
+                case .planned(_, let plan):
+                    log("prompt \(i): \(text) | \(plan.reason)")
+                case .finished(let s):
+                    let checks = s.best.checks.map { "\($0.title)=\($0.state)" }.joined(separator: ", ")
+                    log(String(format: "prompt %d: tried %d in %.0f ms, first image %.0f ms, verify %.0f ms, score %.2f, align %.3f, unsafe %.3f", i, s.candidatesTried, s.elapsedMs, s.firstImageMs, s.best.verifyMs, s.best.score, s.best.alignment ?? -1, s.unsafeProbability ?? -1))
+                    log("  checks: \(checks)")
+                    log("  stages: " + s.stages.map { String(format: "%@ %.1f ms %@", $0.name, $0.milliseconds, $0.applied ? "on" : "off") }.joined(separator: ", "))
+                    try? s.finalImage.writePNG(to: documents.appending(path: "session_\(i).png"))
+                case .blocked(let message), .failed(let message):
+                    log("prompt \(i) stopped: \(message)")
+                case .candidate:
+                    break
                 }
-            } catch {
-                log("run \(run) FAILED: \(error)")
             }
         }
+        refreshDevice()
+        log(String(format: "end MB: footprint %.0f, peak %.0f, available %.0f, thermal %d", device.footprintMB, device.peakMB, device.availableMB, ProcessInfo.processInfo.thermalState.rawValue))
         try? report.write(to: documents.appending(path: "bench.txt"), atomically: true, encoding: .utf8)
         log("benchmark done")
     }
 
-    /// Prints where Core ML plans to run each model on this device.
+    /// Prints where Core ML plans to run each model on this device: `--plan`.
     func runPlanReport() async {
         guard let models = Bundle.main.url(forResource: "Models", withExtension: nil) else { return }
         func log(_ line: String) { FileHandle.standardOutput.write(Data((line + "\n").utf8)) }
@@ -134,12 +255,33 @@ final class Studio {
         }
         log("plan done")
     }
+}
 
-    private func refreshMemory() {
-        if let snapshot = MemoryProbe.snapshot() {
-            footprintMB = Double(snapshot.footprintBytes) / 1_048_576
-            peakMB = Double(snapshot.lifetimePeakBytes) / 1_048_576
+struct DeviceSnapshot {
+    let footprintMB: Double
+    let peakMB: Double
+    let availableMB: Double
+    let thermal: ProcessInfo.ThermalState
+    let lowPower: Bool
+
+    static var current: DeviceSnapshot {
+        let memory = MemoryProbe.snapshot()
+        return DeviceSnapshot(
+            footprintMB: Double(memory?.footprintBytes ?? 0) / 1_048_576,
+            peakMB: Double(memory?.lifetimePeakBytes ?? 0) / 1_048_576,
+            availableMB: Double(MemoryProbe.availableBytes() ?? 0) / 1_048_576,
+            thermal: ProcessInfo.processInfo.thermalState,
+            lowPower: ProcessInfo.processInfo.isLowPowerModeEnabled
+        )
+    }
+
+    var thermalName: String {
+        switch thermal {
+        case .nominal: "Normal"
+        case .fair: "Warm"
+        case .serious: "Hot"
+        case .critical: "Very hot"
+        @unknown default: "Unknown"
         }
-        availableMB = Double(MemoryProbe.availableBytes() ?? 0) / 1_048_576
     }
 }

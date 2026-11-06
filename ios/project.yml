@@ -17,6 +17,9 @@ targets:
         type: folder
       - path: App/Resources/Tokenizer
         type: folder
+      - path: App/Resources/Verifier
+        type: folder
+      - path: App/Resources/measured.json
     dependencies:
       - package: KshanaCore
     settings:

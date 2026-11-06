@@ -63,15 +63,17 @@ public actor Generator {
 
     private let location: ModelLocation
     private let computeUnits: MLComputeUnits
+    private let textComputeUnits: MLComputeUnits
     private var tokenizer: BPETokenizer?
     private var textEncoder: MLModel?
     private var unet: MLModel?
     private var decoder: MLModel?
     private var cached: (prompt: String, embedding: MLMultiArray)?
 
-    public init(location: ModelLocation, computeUnits: MLComputeUnits = .cpuAndNeuralEngine) {
+    public init(location: ModelLocation, computeUnits: MLComputeUnits = .cpuAndNeuralEngine, textComputeUnits: MLComputeUnits? = nil) {
         self.location = location
         self.computeUnits = computeUnits
+        self.textComputeUnits = textComputeUnits ?? computeUnits
     }
 
     public var isLoaded: Bool { tokenizer != nil && textEncoder != nil && unet != nil && decoder != nil }
@@ -88,7 +90,7 @@ public actor Generator {
 
         progress("Text encoder")
         var watch = Stopwatch()
-        textEncoder = try loadModel("TextEncoder.mlmodelc")
+        textEncoder = try loadModel("TextEncoder.mlmodelc", units: textComputeUnits)
         let textMs = watch.lap()
         progress("Image model")
         unet = try loadModel("UNet.mlmodelc")
@@ -100,9 +102,9 @@ public actor Generator {
         return LoadReport(textMs: textMs, unetMs: unetMs, decoderMs: decoderMs)
     }
 
-    private func loadModel(_ name: String) throws -> MLModel {
+    private func loadModel(_ name: String, units: MLComputeUnits? = nil) throws -> MLModel {
         let config = MLModelConfiguration()
-        config.computeUnits = computeUnits
+        config.computeUnits = units ?? computeUnits
         return try MLModel(contentsOf: fileURL(location.models, name), configuration: config)
     }
 
