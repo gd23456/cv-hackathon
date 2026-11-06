@@ -38,7 +38,7 @@ struct CreateView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                if let image = studio.exportImage(), studio.summary != nil {
+                if let image = studio.exportImage {
                     ToolbarItem(placement: .topBarTrailing) {
                         ShareLink(item: Image(uiImage: image), preview: SharePreview("AI-generated image", image: Image(uiImage: image)))
                     }

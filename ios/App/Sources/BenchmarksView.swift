@@ -54,13 +54,15 @@ struct BenchmarksView: View {
                 if !charted.isEmpty {
                     Section {
                         Chart(charted) { row in
+                            // Bars start at 1, because a log axis can't reach zero.
                             BarMark(
-                                x: .value("Time per image (ms)", row.latencyMs ?? 0),
+                                xStart: .value("Start", 1.0),
+                                xEnd: .value("Time per image (ms)", max(1.0, row.latencyMs ?? 1)),
                                 y: .value("Configuration", row.name)
                             )
                             .foregroundStyle(row.name.hasPrefix("Kshana") ? Color.kshanaAccent : Color.secondary.opacity(0.5))
                         }
-                        .chartXScale(type: .log)
+                        .chartXScale(domain: 1...max(10, (charted.compactMap(\.latencyMs).max() ?? 10) * 1.5), type: .log)
                         .chartXAxisLabel("Time per image (ms, log scale)")
                         .frame(height: CGFloat(charted.count) * 44 + 48)
                     } header: {

@@ -16,6 +16,7 @@ final class Studio {
 
     private(set) var phase: Phase = .preparing("Starting")
     private(set) var image: UIImage?
+    private(set) var exportImage: UIImage?
     private(set) var parsed: ParsedPrompt?
     private(set) var plan: PlanDecision?
     private(set) var checks: [CheckResult] = []
@@ -26,6 +27,7 @@ final class Studio {
     private(set) var completedRuns = 0
     private(set) var loadReport: LoadReport?
     private(set) var verifierAvailable = false
+    private(set) var verifierStatus = "loading"
     private(set) var acceleration: AccelerationReport?
     private(set) var benchmark: BenchmarkResult?
     private(set) var isBenchmarking = false
@@ -106,21 +108,36 @@ final class Studio {
                 notice = "The Neural Engine isn't available right now, so images take about a second each. Reopening Kshana may fix this."
             }
             phase = .preparing("Checks")
-            do {
-                try await verifier?.load()
-                verifierAvailable = verifier != nil
-                FileHandle.standardOutput.write(Data("verifier loaded: \(verifierAvailable)\n".utf8))
-            } catch {
-                logger.error("verifier unavailable: \(String(describing: error), privacy: .public)")
-                FileHandle.standardOutput.write(Data("verifier unavailable: \(error)\n".utf8))
-                notice = "Checks are off because their models couldn't load. Images still work."
-            }
+            await loadVerifier()
             refreshDevice()
             phase = .ready
         } catch {
             logger.error("load failed: \(String(describing: error), privacy: .public)")
             phase = .failed("Couldn't load the models. Close Kshana and try again.")
         }
+    }
+
+    /// Neural Engine setup for these models can fail on a first launch, so try twice.
+    /// A trial check also warms them up, which would otherwise delay the first real image.
+    private func loadVerifier() async {
+        guard let generator, let verifier else {
+            verifierStatus = "not bundled"
+            return
+        }
+        for attempt in 1...2 {
+            do {
+                try await verifier.load()
+                let probe = try await generator.generate(prompt: "a photo", seed: 3)
+                _ = try await verifier.verify(probe.image, prompt: "a photo", parsed: PromptParser.parse("a photo"))
+                verifierAvailable = true
+                verifierStatus = "on, attempt \(attempt)"
+                return
+            } catch {
+                verifierStatus = "failed: \(error)"
+                logger.error("verifier attempt \(attempt): \(String(describing: error), privacy: .public)")
+            }
+        }
+        notice = "Checks are off because their models couldn't load. Images still work."
     }
 
     func generate() {
@@ -130,6 +147,7 @@ final class Studio {
         checks = []
         triedCount = 0
         summary = nil
+        exportImage = nil
         notice = nil
         plan = nil
         let seed = nextSeed
@@ -157,6 +175,7 @@ final class Studio {
         case .finished(let summary):
             self.summary = summary
             image = summary.finalImage.cgImage.map(UIImage.init(cgImage:))
+            exportImage = makeExportImage(from: summary)
             checks = summary.best.checks
             completedRuns += 1
             if summary.wasTruncated {
@@ -187,8 +206,8 @@ final class Studio {
     }
 
     /// A larger copy for saving, resampled with Lanczos.
-    func exportImage() -> UIImage? {
-        guard let summary, let large = try? ImageOps.resized(summary.finalImage, width: 1024, height: 1024) else { return image }
+    private func makeExportImage(from summary: SessionSummary) -> UIImage? {
+        guard let large = try? ImageOps.resized(summary.finalImage, width: 1024, height: 1024) else { return image }
         return large.cgImage.map(UIImage.init(cgImage:))
     }
 
@@ -223,6 +242,7 @@ final class Studio {
         if let load = loadReport {
             log(String(format: "load ms: text %.0f, unet %.0f, decoder %.0f, total %.0f", load.textMs, load.unetMs, load.decoderMs, load.totalMs))
         }
+        log("verifier \(verifierStatus)")
         if let acceleration {
             log(String(format: "acceleration: unet %.1f ms, reloads %d, accelerated %@", acceleration.unetMs, acceleration.reloads, acceleration.isAccelerated ? "yes" : "NO"))
         }

@@ -3,14 +3,15 @@ import SwiftUI
 @main
 struct KshanaApp: App {
     @State private var studio = Studio()
+    @State private var tab = CommandLine.arguments.contains("--tab-benchmarks") ? 2 : 0
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
-            TabView {
-                Tab("Create", systemImage: "sparkles") { CreateView(studio: studio) }
-                Tab("Inside", systemImage: "cpu") { InsideView(studio: studio) }
-                Tab("Benchmarks", systemImage: "chart.xyaxis.line") { BenchmarksView(studio: studio) }
+            TabView(selection: $tab) {
+                Tab("Create", systemImage: "sparkles", value: 0) { CreateView(studio: studio) }
+                Tab("Inside", systemImage: "cpu", value: 1) { InsideView(studio: studio) }
+                Tab("Benchmarks", systemImage: "chart.xyaxis.line", value: 2) { BenchmarksView(studio: studio) }
             }
             .tint(Color.kshanaAccent)
             .task {
