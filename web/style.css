@@ -34,6 +34,7 @@ html {
   -webkit-text-size-adjust: 100%;
   overscroll-behavior: none;
   background: var(--stock);
+  scrollbar-color: var(--k) var(--stock);
 }
 
 body {
@@ -45,10 +46,12 @@ body {
   caret-color: var(--k);
   -webkit-font-smoothing: antialiased;
   overflow-wrap: anywhere;
+  overscroll-behavior: none;
 }
 
 ::selection { background: var(--c); color: var(--k); }
 .defs { position: absolute; }
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 [hidden] { display: none !important; }
 
 a { color: inherit; text-underline-offset: 3px; }
@@ -77,21 +80,31 @@ button, .budget-opt, summary {
   padding-left: calc(var(--gutter) + env(safe-area-inset-left, 0px));
   padding-right: calc(var(--gutter) + env(safe-area-inset-right, 0px));
 }
-.proof { padding-top: 28px; scroll-margin-top: 0; }
+.proof { padding-top: 28px; }
 .report { padding-top: 12px; padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px)); }
 
+@media (min-width: 720px) {
+  .frame, .strip, .caption { max-width: min(100%, calc(100svh - 150px)); margin-left: auto; margin-right: auto; }
+  .shell[data-offline] .report { display: none; }
+}
+
+/* The form stays in view while results scroll, unless it would be cut off. */
+@media (min-width: 720px) and (min-height: 660px) {
+  .ticket-in { position: sticky; top: 28px; }
+}
+
 @media (min-width: 720px) and (max-width: 1099px) {
-  .shell { display: grid; grid-template-columns: minmax(300px, 340px) minmax(0, 1fr); align-items: start; }
-  .ticket { grid-row: 1 / span 2; position: sticky; top: 0; min-height: 100svh; }
+  .shell { display: grid; grid-template-columns: minmax(300px, 340px) minmax(0, 1fr); grid-template-rows: auto 1fr; }
+  .ticket { grid-row: 1 / span 2; min-height: 100svh; }
   .proof { padding: 40px 32px 0; }
   .report { padding: 16px 32px 40px; }
 }
 
 @media (min-width: 1100px) {
-  .shell { display: grid; grid-template-columns: 340px minmax(0, 1fr) minmax(300px, 360px); align-items: start; }
-  .ticket { position: sticky; top: 0; min-height: 100svh; padding: 28px 28px 32px; }
-  .proof { padding: 40px 40px 40px; }
-  .frame, .strip, .caption { max-width: min(100%, calc(100svh - 150px)); margin-left: auto; margin-right: auto; }
+  .shell { display: grid; grid-template-columns: 340px minmax(0, 1fr) minmax(300px, 360px); }
+  .ticket { min-height: 100svh; padding: 28px 28px 32px; }
+  .proof { padding: 40px; }
+  .shell[data-offline] .proof { grid-column: 2 / -1; }
   .report { padding: 36px 28px 40px 0; }
 }
 
@@ -215,6 +228,7 @@ textarea:focus-visible { outline: 3px solid var(--c); outline-offset: 0; }
   background-image: radial-gradient(circle at center, #d9d9d3 1.4px, transparent 1.6px);
   background-size: 9px 9px;
   margin-top: 10px;
+  scroll-margin-top: 24px;
 }
 /* Crop marks sit outside the trim. */
 .frame::before {
@@ -285,7 +299,8 @@ textarea:focus-visible { outline: 3px solid var(--c); outline-offset: 0; }
 .strike line { stroke: var(--strike); stroke-width: 3; }
 .frame[data-phase="refused"] .strike { display: block; }
 .frame[data-phase="refused"] { background-image: none; background-color: var(--stock); box-shadow: inset 0 0 0 1px var(--hair); }
-.frame[data-phase="refused"] .slate { justify-content: flex-start; align-items: flex-start; text-align: left; }
+/* The message sits over the line, so the strike never runs through words. */
+.frame[data-phase="refused"] .slate { z-index: 1; justify-content: flex-start; align-items: flex-start; text-align: left; }
 .frame[data-phase="refused"] .slate > * { background: var(--stock); padding: 2px 4px; }
 
 /* Control strip: time used, inked patch by patch, with a notch where the image improved. */
@@ -321,7 +336,8 @@ textarea:focus-visible { outline: 3px solid var(--c); outline-offset: 0; }
 .samples { margin-top: 0; }
 .samples-head { margin: 0; font-size: 26px; line-height: 1.15; font-weight: 700; font-stretch: 96%; }
 .samples-note { margin: 8px 0 16px; max-width: 58ch; }
-.samples-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.samples-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+@media (min-width: 1100px) { .samples-grid { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); } }
 .samples-grid figure { margin: 0; }
 .samples-grid img { display: block; width: 100%; height: auto; aspect-ratio: 1; background: var(--plate-bg); }
 .samples-grid figcaption { margin-top: 4px; font-size: 14px; line-height: 1.3; }
@@ -358,6 +374,12 @@ textarea:focus-visible { outline: 3px solid var(--c); outline-offset: 0; }
 .cleanup ul { list-style: none; margin: 4px 0 0; padding: 0; font-size: 14px; }
 .cleanup li { padding: 5px 0; border-top: 1px solid var(--hair); font-variant-numeric: tabular-nums; }
 .cleanup li span { color: var(--quiet); }
+
+@media (pointer: coarse) {
+  .example, .cleanup summary { min-height: 44px; }
+  .example { padding-right: 2px; }
+  .cleanup summary { display: flex; align-items: center; gap: 8px; }
+}
 
 @media (hover: hover) and (pointer: fine) {
   .example:hover { text-decoration-thickness: 2px; }

@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import logging
 import os
+import resource
+import sys
 import time
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager
@@ -61,7 +63,17 @@ class RateLimiter:
         return None
 
 
+def peak_rss_mb() -> int:
+    peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    return round(peak / (1024 * 1024 if sys.platform == "darwin" else 1024))
+
+
 def client_ip(request: Request) -> str:
+    # Cloudflare overwrites this header, but only trust it when a tunnel is the sole way in.
+    if os.environ.get("KSHANA_BEHIND_CLOUDFLARE") == "1":
+        cf = request.headers.get("cf-connecting-ip")
+        if cf:
+            return cf.strip()
     # Behind Modal's proxy the last X-Forwarded-For entry is the one the proxy added.
     fwd = request.headers.get("x-forwarded-for")
     if fwd:
@@ -146,7 +158,10 @@ def create_app(pipeline=None, manager: JobManager | None = None, limiter: RateLi
         if manager.load_error:
             return JSONResponse({"status": "error", "ready": False, **stats}, status_code=503)
         ready = manager.ready.is_set()
-        body = {"status": "ok" if ready else "warming", "ready": ready, **stats, "boot_s": manager.boot_s}
+        body = {"status": "ok" if ready else "warming", "ready": ready, **stats, "boot_s": manager.boot_s, "peak_rss_mb": peak_rss_mb()}
+        gen = getattr(manager.pipeline, "gen", None)
+        if gen is not None:
+            body["unet_backend"] = gen.backend
         costs = getattr(manager.pipeline, "costs", None)
         if ready and costs is not None and hasattr(costs, "as_dict"):
             body["costs_ms"] = costs.as_dict()

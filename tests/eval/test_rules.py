@@ -177,3 +177,34 @@ def test_config_info_and_classical_names():
     info = config_info("S1-A+clahe=always")
     assert info["classical"] == "clahe=always" and "clahe=always" in info["precision"]
     assert "classical" not in config_info("S1-A")
+
+
+def test_flickr_captions_are_seeded_and_one_per_image(tmp_path):
+    import csv
+    import zipfile
+
+    from flickr import captions_from_csv, zip_members
+
+    path = tmp_path / "t.csv"
+    with open(path, "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=["filename", "split", "raw"])
+        w.writeheader()
+        for name in ("b.jpg", "a.jpg"):
+            w.writerow({"filename": name, "split": "test", "raw": json.dumps([f"{name} one", f"{name} two"])})
+    rows = captions_from_csv(path)
+    assert [r["id"] for r in rows] == ["flickr_a", "flickr_b"]
+    assert rows == captions_from_csv(path)
+    assert rows[0]["seed"] == 50000 and rows[1]["seed"] == 50001
+    with zipfile.ZipFile(tmp_path / "t.zip", "w") as z:
+        z.writestr("images/a.jpg", b"x")
+        z.writestr("images/._a.jpg", b"x")
+        z.writestr("images/notes.txt", b"x")
+    with zipfile.ZipFile(tmp_path / "t.zip") as z:
+        assert zip_members(z) == {"a.jpg": "images/a.jpg"}
+
+
+def test_flickr_never_uses_coco_reference_and_is_held_out():
+    assert metrics.REFERENCES["flickr_1k"] != metrics.REFERENCES["coco_1k"]
+    assert "not comparable" in metrics.PROTOCOLS["flickr1k"]
+    with pytest.raises(SystemExit):
+        common.guard_test_split("flickr_1k", False)

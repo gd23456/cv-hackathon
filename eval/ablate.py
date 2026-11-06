@@ -138,7 +138,7 @@ def feature_table(names: list[str], base: str, split: str = "coco_1k") -> list[d
 
 
 def classical_table() -> list[dict]:
-    base = "S1-A+none=off"
+    base = "S1-A"  # every op off is the plain generator, same seeds
     names = [f"S1-A+{op}={mode}" for op in CLASSICAL_OPS for mode in ("always", "gated")]
     out = []
     for row in feature_table(names, base):

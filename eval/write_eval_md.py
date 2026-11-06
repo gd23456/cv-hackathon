@@ -34,38 +34,71 @@ def ci(r: dict) -> str:
     return f"{r['clip_l14']} [{r['clip_l14_ci95_lo']}, {r['clip_l14_ci95_hi']}]"
 
 
+def is_flickr(r: dict) -> bool:
+    return r["split"].startswith("flickr")
+
+
 def clip_section(metrics: list[dict]) -> list[str]:
-    rows = [[r["config"], r["split"], r["n"], ci(r), r["clip_b32_cos"], r["hardware"], r["engine"]] for r in metrics]
+    rows = [[r["config"], r["split"], r["n"], ci(r), r["clip_b32_cos"], r["hardware"], r["engine"]] for r in metrics if not is_flickr(r)]
+    flickr = [[r["config"], r["split"], r["n"], ci(r), r["clip_b32_cos"], r["hardware"], r["engine"]] for r in metrics if is_flickr(r)]
+    flickr_lines = [f"Flickr30K, separate protocol: {TODO}", ""] if not flickr else [
+        "Flickr30K, separate protocol: official 1k test captions, own real-image reference. Not comparable with the COCO rows.", "",
+        *table(["Config", "Prompts", "n", "CLIP ViT-L/14", "CLIP ViT-B/32 cosine", "Hardware", "Engine"], flickr)]
     return ["## 1. CLIP similarity", "",
             "Headline ViT-L/14 via torchmetrics, max(100 x cos, 0), against the original prompt, with bootstrap 95% CI. ViT-B/32 is raw cosine.", "",
             *table(["Config", "Prompts", "n", "CLIP ViT-L/14", "CLIP ViT-B/32 cosine", "Hardware", "Engine"], rows),
+            *flickr_lines,
             f"iPhone 15: {TODO} (quality is measured on M4 with the same Core ML models; device output not yet compared).", ""]
 
 
 def fid_section(metrics: list[dict]) -> list[str]:
     five = [r for r in metrics if r["fid"]]
     rows = [[r["config"], r["n"], r["fid"], r["hardware"], r["engine"]] for r in five]
-    kid = [r for r in metrics if r["kid_x1000"] or r["cmmd_l14_x1000"]]
+    kid = [r for r in metrics if (r["kid_x1000"] or r["cmmd_l14_x1000"]) and not is_flickr(r)]
+    flickr_kid = [r for r in metrics if r["kid_x1000"] and is_flickr(r)]
     lines = ["## 2. FID", "", "clean-fid clean mode, PNG, 5,000 generated vs the same 5,000 COCO val2017 references (center crop, 512 Lanczos).", ""]
     lines += table(["Config", "n", "FID", "Hardware", "Engine"], rows) if rows else [f"FID at 5k: {TODO}", ""]
     if kid:
         lines += ["KID and CMMD are for ablations; FID is not reported below 5k. CMMD uses ViT-L/14 at 224, the paper uses 336.", ""]
-        lines += table(["Config", "n", "KID x 1000", "CMMD x 1000"], [[r["config"], r["n"], r["kid_x1000"], r["cmmd_l14_x1000"]] for r in kid])
+        lines += table(["Config", "Split", "n", "KID x 1000", "CMMD x 1000"], [[r["config"], r["split"], r["n"], r["kid_x1000"], r["cmmd_l14_x1000"]] for r in kid])
+    if flickr_kid:
+        lines += ["Flickr30K, separate protocol: KID against 1,000 Flickr30K test images, preprocessed the same way. No FID below 5k. Not comparable with the COCO rows.", ""]
+        lines += table(["Config", "Split", "n", "KID x 1000"], [[r["config"], r["split"], r["n"], r["kid_x1000"]] for r in flickr_kid])
     return lines
+
+
+def iphone(*kinds: str) -> list[str]:
+    rows = [r for r in read("iphone_measured.csv") if r["kind"] in kinds]
+    if not rows:
+        return [f"iPhone 15: {TODO} (from the app).", ""]
+    return table(["iPhone measure", "Value", "Device", "OS", "Config", "Conditions", "Source"],
+                 [[r["measure"], r["value"], r["device"], r["os"], r["config"], r["conditions"], r["source"]] for r in rows])
 
 
 def latency_section(latency: list[dict]) -> list[str]:
     rows = [[r["config"], r["hardware"], r["engine"], r["n_warm"], r["warm_mean_ms"], r["warm_p50_ms"], r["warm_p95_ms"], r["text_ms"], r["unet_ms"], r["decoder_ms"], r["cold_to_first_image_s_mean"]] for r in latency]
     return ["## 3. Image generation latency", "",
             *table(["Config", "Hardware", "Engine", "Warm n", "Mean ms", "p50 ms", "p95 ms", "Text ms", "UNet ms", "Decoder ms", "Cold to first image s"], rows),
-            f"iPhone 15, warm and cold: {TODO} (from the app).", "", f"Modal: {TODO}", ""]
+            *iphone("latency", "load", "failure"), f"iPhone p50 and p95: {TODO} (from the app).", "", f"Modal: {TODO}", ""]
 
 
 def memory_section(latency: list[dict]) -> list[str]:
     rows = [[r["config"], r["hardware"], r["engine"], r["process_maxrss_MB"], r["aned_service_rss_MB"]] for r in latency]
     return ["## 4. Peak memory consumption", "",
             *table(["Config", "Hardware", "Engine", "Process max RSS MB (excludes Neural Engine service)", "Neural Engine service RSS MB"], rows),
-            f"iPhone 15, phys_footprint, with iOS version: {TODO} (from the app).", ""]
+            *iphone("memory")]
+
+
+def baseline_sizes() -> list[str]:
+    from common import HF
+
+    rows = []
+    for label, folder in (("B0, SD 1.5 fp16 weights", "stable-diffusion-v1-5"), ("B1, SD-Turbo fp16 weights", "sd-turbo")):
+        files = [f for f in (HF / folder).rglob("*.safetensors")]
+        if files:
+            size = sum(f.stat().st_size for f in files)
+            rows.append([label, round(size / 2**20, 1), round(size / 1e6, 1)])
+    return table(["Baseline", "MiB", "MB"], rows) if rows else [f"Baselines B0 and B1 on disk: {TODO}"]
 
 
 def size_section() -> list[str]:
@@ -80,7 +113,7 @@ def size_section() -> list[str]:
             rows.append([m["model"], f"**variant {variant} total**", v["compiled_MiB"], v["compiled_MB"]])
     return ["## 5. Model size", "", "Compiled Core ML, generator only.", "",
             *table(["Model", "Component", "MiB", "MB"], rows),
-            f"With verifier on iPhone: {TODO}", f"", f"Baselines B0 and B1 on disk: {TODO}", ""]
+            f"With verifier on iPhone: {TODO}", "", *baseline_sizes(), ""]
 
 
 def quality_cost_section(metrics: list[dict], latency: list[dict]) -> list[str]:

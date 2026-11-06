@@ -1,6 +1,9 @@
 #!/usr/bin/env python
-"""Export SDXS-512-DreamShaper + TAESD decoder to OpenVINO IR (FP16 weights) and
-check the result against PyTorch. Also fetches the verifier's ONNX models.
+"""Export SDXS-512-DreamShaper + TAESD and check the result against PyTorch.
+
+Text encoder, UNet and TAESD decoder: ONNX, because ONNX Runtime needs far less memory
+(see kshana/generator.py). The UNet is also written as FP16 OpenVINO IR so
+KSHANA_UNET_BACKEND can choose. Also fetches the verifier's ONNX models.
 
     python optimize/export_openvino.py --out server/models
     python optimize/export_openvino.py --out server/models \
@@ -9,6 +12,7 @@ check the result against PyTorch. Also fetches the verifier's ONNX models.
 from __future__ import annotations
 
 import argparse
+import gc
 import json
 import os
 import shutil
@@ -120,44 +124,58 @@ def fetch_verifier(out: Path) -> None:
         fetch(f"{CLIP_REPO}/{path}", out / name)
 
 
+def export_onnx(module, example, out: Path, name: str, inputs: list[str], axes: dict) -> None:
+    """Weights go in a separate .data file, which ONNX Runtime memory-maps instead of copying."""
+    import onnx
+
+    tmp = out / f"{name}.tmp.onnx"
+    with torch.no_grad():
+        torch.onnx.export(
+            module, example, str(tmp), dynamo=False, opset_version=17,
+            input_names=inputs, output_names=["output"], dynamic_axes=axes,
+        )
+    proto = onnx.load(str(tmp), load_external_data=True)
+    onnx.save_model(
+        proto, str(out / f"{name}.onnx"), save_as_external_data=True, all_tensors_to_one_file=True,
+        location=f"{name}.onnx.data", size_threshold=1024,
+    )
+    tmp.unlink()
+    print(f"exported {name} ONNX {(out / f'{name}.onnx.data').stat().st_size / 1e6:.0f} MB", flush=True)
+
+
 def export(args) -> None:
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     text, unet, dec = load_torch(args.sdxs, args.taesd)
+    spatial = {2: "h", 3: "w"}
 
-    specs = [
-        (
-            "text_encoder",
-            text,
-            torch.zeros((1, 77), dtype=torch.long),
-            [("input_ids", ov.PartialShape([1, 77]), ov.Type.i64)],
-        ),
-        (
-            "unet",
+    export_onnx(text, (torch.zeros((1, 77), dtype=torch.long),), out, "text_encoder", ["input_ids"], {})
+    export_onnx(
+        unet, (torch.zeros(1, 4, 64, 64), torch.zeros(1, 77, 768)), out, "unet",
+        ["sample", "encoder_hidden_states"], {"sample": spatial, "output": spatial},
+    )
+    # Small enough to keep inline.
+    with torch.no_grad():
+        torch.onnx.export(
+            dec, (torch.zeros(1, 4, 64, 64),), str(out / "taesd_decoder.onnx"), dynamo=False, opset_version=17,
+            input_names=["latents"], output_names=["output"], dynamic_axes={"latents": spatial, "output": spatial},
+        )
+
+    # Optional OpenVINO UNet, FP16, for KSHANA_UNET_BACKEND=openvino.
+    t0 = time.time()
+    with torch.no_grad():
+        m = ov.convert_model(
             unet,
-            (torch.zeros(1, 4, 64, 64), torch.zeros(1, 77, 768)),
-            [
+            example_input=(torch.zeros(1, 4, 64, 64), torch.zeros(1, 77, 768)),
+            input=[
                 ("sample", ov.PartialShape([1, 4, -1, -1]), ov.Type.f32),
                 ("encoder_hidden_states", ov.PartialShape([1, 77, 768]), ov.Type.f32),
             ],
-        ),
-        (
-            "taesd_decoder",
-            dec,
-            torch.zeros(1, 4, 64, 64),
-            [("latents", ov.PartialShape([1, 4, -1, -1]), ov.Type.f32)],
-        ),
-    ]
-    for name, mod, ex, inputs in specs:
-        t0 = time.time()
-        with torch.no_grad():
-            m = ov.convert_model(mod, example_input=ex, input=inputs)
-        for o in m.outputs:
-            o.get_tensor().set_names({"output"})
-        ov.save_model(m, out / f"{name}.xml", compress_to_fp16=True)
-        size = (out / f"{name}.bin").stat().st_size / 1e6
-        print(f"exported {name} {size:.0f} MB in {time.time() - t0:.0f}s", flush=True)
-        del m
+        )
+    for o in m.outputs:
+        o.get_tensor().set_names({"output"})
+    ov.save_model(m, out / "unet.xml", compress_to_fp16=True)
+    print(f"exported unet IR {(out / 'unet.bin').stat().st_size / 1e6:.0f} MB in {time.time() - t0:.0f}s", flush=True)
 
 
 def psnr(a: np.ndarray, b: np.ndarray) -> float:
@@ -170,28 +188,35 @@ def to_pixels(y: np.ndarray) -> np.ndarray:
 
 
 def check(args) -> None:
-    """PyTorch vs IR: same tokens, same z. Exact-match tokenizer check first."""
+    """PyTorch vs each UNet backend: same tokens, same z. Torch is freed before any runtime loads."""
     from transformers import CLIPTokenizer
 
-    from kshana.generator import Generator
+    from kshana.generator import ONNXRUNTIME, OPENVINO, Generator
 
     tok = CLIPTokenizer.from_pretrained(args.sdxs, subfolder="tokenizer")
-    gen = Generator(Path(args.out), threads=args.threads)
     text, unet, dec = load_torch(args.sdxs, args.taesd)
-    results = []
-    for i, (prompt, seed) in enumerate(zip(PROMPTS, SEEDS)):
+    refs = []
+    for prompt, seed in zip(PROMPTS, SEEDS):
         ids = tok(prompt, padding="max_length", max_length=77, truncation=True, return_tensors="np")["input_ids"]
-        assert (gen.tokenize(prompt) == ids).all(), "runtime tokenizer differs from transformers"
-        z = gen.noise(seed, 64)
+        z = Generator.noise(seed, 64)
         with torch.no_grad():
             emb_t = text(torch.from_numpy(ids.astype(np.int64)))
             eps_t = unet(torch.from_numpy(z), emb_t)
             x0_t = (torch.from_numpy(z) - SQRT_ONE_MINUS_ALPHA * eps_t) / SQRT_ALPHA
-            img_t = to_pixels(dec(x0_t).numpy())
-        img_o = gen.generate_from_embedding(gen.encode(prompt), seed=seed, latent=64)
-        results.append(round(psnr(img_t, img_o), 2))
-        print(f"prompt {i} PSNR(torch vs ov) {results[-1]} dB", flush=True)
-    print("RESULT " + json.dumps({"psnr_db": results, "mean_db": round(float(np.mean(results)), 2)}))
+            refs.append((prompt, seed, ids, to_pixels(dec(x0_t).numpy())))
+    del text, unet, dec
+    gc.collect()
+
+    for backend in args.backends or (ONNXRUNTIME, OPENVINO):
+        gen = Generator(Path(args.out), threads=args.threads, unet_backend=backend)
+        results = []
+        for prompt, seed, ids, img_t in refs:
+            assert (gen.tokenize(prompt) == ids).all(), "runtime tokenizer differs from transformers"
+            img = gen.generate_from_embedding(gen.encode(prompt), seed=seed, latent=64)
+            results.append(round(psnr(img_t, img), 2))
+        print("RESULT " + json.dumps({"unet_backend": backend, "psnr_db": results, "mean_db": round(float(np.mean(results)), 2)}), flush=True)
+        del gen
+        gc.collect()
 
 
 def main() -> None:
@@ -200,6 +225,7 @@ def main() -> None:
     ap.add_argument("--taesd", default="madebyollin/taesd")
     ap.add_argument("--out", default="server/models")
     ap.add_argument("--threads", type=int, default=None)
+    ap.add_argument("--backends", nargs="*", help="UNet backends to check; default both")
     ap.add_argument("--skip-export", action="store_true")
     ap.add_argument("--skip-check", action="store_true")
     ap.add_argument("--skip-verifier", action="store_true")

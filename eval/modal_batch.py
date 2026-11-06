@@ -1,8 +1,7 @@
-"""Baseline image generation on Modal: detached, capped, budget-guarded, resumable. NOT YET RUN.
+"""Baseline image generation on Modal: detached, capped, budget-guarded, resumable. Blocked so far: the first launch was refused because the workspace is at its spend limit.
 
     modal run --detach eval/modal_batch.py --config B0-T4 --split coco_5k
-    modal volume get kshana-eval gen/B0-T4/coco_5k data/gen/B0-T4/coco_5k
-    python eval/run.py --config B0-T4 --split coco_5k --from-images --inception
+    python eval/run.py --config B0-T4 --split coco_5k --inception --from-volume kshana-eval
 
 The driver runs remotely, so closing the laptop does not stop it. Finished PNGs on the volume are skipped on retry.
 Spend is recorded in a modal.Dict shared by all runs; dispatch stops before the total could pass BUDGET_USD,
@@ -19,13 +18,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from budget import BudgetGuard, Rates, worker_rate  # noqa: E402
 
 BUDGET_USD = 12.0
-MAX_CONTAINERS = 2
+MAX_CONTAINERS = 4
 CHUNK = 64
-BATCH = {"B0-T4": 4, "B1-T4": 8}
+BATCH = {"B0-T4": 8, "B1-T4": 16}
 CHUNK_TIMEOUT_S = 1800
 STARTUP_CHARGE_S = 420  # image pull, model load, idle window: charged per container, on the high side
-WORKER_CPUS = 4.0
-WORKER_MEM_GIB = 16.0
+WORKER_CPUS = 2.0
+WORKER_MEM_GIB = 12.0
 RATE = worker_rate(Rates(), WORKER_CPUS, WORKER_MEM_GIB)
 DRIVER_TIMEOUT_S = min(24 * 3600, int(BUDGET_USD / (RATE * MAX_CONTAINERS)))  # wall-clock backstop
 JOBS = {
@@ -65,6 +64,7 @@ class Worker:
             requires_safety_checker=False,
         ).to("cuda")
         self.pipe.set_progress_bar_config(disable=True)
+        self.pipe.enable_vae_slicing()  # one image at a time through the decoder; output is unchanged
         self.job = job
 
     @modal.method()

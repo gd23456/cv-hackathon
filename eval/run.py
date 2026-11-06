@@ -2,7 +2,7 @@
 """Streaming evaluation run: generate a chunk, extract features, delete its PNGs, repeat. Resumable.
 
     python eval/run.py --config S1-A --split coco_1k [--inception]
-    python eval/run.py --config B1 --split coco_1k --from-images    # images already on disk, e.g. from Modal
+    python eval/run.py --config B1-T4 --split coco_5k --inception --from-volume kshana-eval
 
 Keeps the first 30 images of the split as a sample (same rows for every config, nothing hand-picked).
 Output: data/features/<config>/<split>.npz, data/gen/<config>/<split>/log.jsonl
@@ -40,7 +40,27 @@ def merge_parts(parts_dir: Path, rows: list[dict], out: Path) -> dict:
     return merged
 
 
-def run(config: str, split: str, inception: bool, from_images: bool, keep_all: bool) -> None:
+def fetch_from_volume(volume_name: str, remote_dir: str, chunk: list[dict], img_dir: Path) -> None:
+    """Copy this chunk's PNGs from a Modal volume. Reads only; nothing on the volume changes."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    import modal
+
+    volume = modal.Volume.from_name(volume_name)
+
+    def one(row: dict) -> None:
+        path = img_dir / f"{row['id']}.png"
+        if not path.exists():
+            with open(path.with_suffix(".part"), "wb") as f:
+                for block in volume.read_file(f"{remote_dir}/{row['id']}.png"):
+                    f.write(block)
+            os.replace(path.with_suffix(".part"), path)
+
+    with ThreadPoolExecutor(8) as pool:
+        list(pool.map(one, chunk))
+
+
+def run(config: str, split: str, inception: bool, from_images: bool, keep_all: bool, from_volume: str | None = None) -> None:
     from features import Extractor
 
     rows = read_split(split)
@@ -62,7 +82,9 @@ def run(config: str, split: str, inception: bool, from_images: bool, keep_all: b
             if not need:
                 continue
             wait_for_disk()
-            if not from_images:
+            if from_volume:
+                fetch_from_volume(from_volume, f"gen/{config}/{name}", chunk, img_dir)
+            elif not from_images:
                 for r in chunk:
                     path = img_dir / f"{r['id']}.png"
                     if path.exists():
@@ -95,12 +117,13 @@ def main() -> None:
     ap.add_argument("--split", required=True)
     ap.add_argument("--inception", action="store_true")
     ap.add_argument("--from-images", action="store_true")
+    ap.add_argument("--from-volume", help="Modal volume holding gen/<config>/<split>/<id>.png")
     ap.add_argument("--keep-all", action="store_true", help="keep every PNG, for the complex-prompt scorer")
     ap.add_argument("--final-test", action="store_true")
     args = ap.parse_args()
     guard_test_split(args.split, args.final_test)
     os.nice(10)
-    run(args.config, args.split, args.inception, args.from_images, args.keep_all)
+    run(args.config, args.split, args.inception, args.from_images, args.keep_all, args.from_volume)
 
 
 if __name__ == "__main__":

@@ -15,6 +15,7 @@ from . import classical, parser, planner, safety, verifier
 from .anytime import Attempt, run_anytime
 from .generator import LATENT_FOR_RES, Generator
 from .inputs import CleanPrompt, fit_tokens
+from .ort import low_memory
 
 BENCH_PROMPT = "a red apple to the left of a blue cup on a wooden table"
 DEFAULT_MODELS = Path(__file__).resolve().parent.parent / "server" / "models"
@@ -72,9 +73,11 @@ class Pipeline:
         text_ms, emb = timed(lambda: self.gen.encode(BENCH_PROMPT))
         # Largest first: dynamic-shape buffers then get reused, which lowers peak memory.
         # 512 again last: switching shape costs about a second once, and the first click must not pay it.
+        # With on-demand sessions, one pass is enough and slow shared CPUs must not spend a minute here.
+        order, repeat = ((256, 384, 512), 1) if low_memory() else ((512, 384, 256, 512), 3)
         seed_ms = {}
-        for res in (512, 384, 256, 512):
-            ms, image = timed(lambda: self.gen.generate_from_embedding(emb, 1, LATENT_FOR_RES[res]), repeat=3)
+        for res in order:
+            ms, image = timed(lambda: self.gen.generate_from_embedding(emb, 1, LATENT_FOR_RES[res]), repeat=repeat)
             seed_ms[res] = ms
         classical_ms, _ = timed(lambda: classical.enhance(image, False, self.classical_modes))
         detect_ms, _ = timed(lambda: self.verifier.detector.detect(image))

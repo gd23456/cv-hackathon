@@ -1,0 +1,48 @@
+{
+ "status": "USED, S1-A evaluation only",
+ "dataset": "Flickr30k (Young et al., TACL 2014)",
+ "official_source": "https://shannon.cs.illinois.edu/DenotationGraph/",
+ "official_access": "Request form: https://illinois.edu/fb/sec/229675",
+ "official_terms_quoted": [
+  "Please fill in the following form to request access to the Flickr 30k Dataset and the Denotation Graph.",
+  "They are solely provided at the link below for researchers and educators who wish to use the dataset for non-commercial research and/or educational purposes.",
+  "Use of the images must abide by the Flickr Terms of Use.",
+  "Note that the Flickr 30k Dataset includes images obtained from Flickr.",
+  "We do not own the copyright of the images."
+ ],
+ "official_licence": "none stated on the page; copyright of the images is not held by the dataset authors",
+ "hub_candidates": {
+  "nlphuji/flickr_1k_test_image_text_retrieval": {
+   "gated": false,
+   "licence_declared": null,
+   "files": "images_flickr_1k_test.zip 141 MB, test_1k_flickr.csv; loader script present, not needed",
+   "split": "Karpathy 1k test; all 1000 filenames equal the test split in nlphuji/flickr30k's CSV"
+  },
+  "nlphuji/flickr30k": {
+   "gated": false,
+   "licence_declared": null,
+   "files": "flickr30k-images.zip 4390 MB, flickr_annotations_30k.csv; loader script present, not needed"
+  },
+  "umaru97/flickr30k_train_val_test": {
+   "gated": false,
+   "licence_declared": null,
+   "files": "parquet; test split 141 MB"
+  }
+ },
+ "checked": "7 Nov 2026, annotation CSVs and dataset cards only",
+ "used": {
+  "repo": "nlphuji/flickr_1k_test_image_text_retrieval",
+  "revision": "c4a4cdc67b77fce148b45484a067957bf75ec4c3",
+  "files": [
+   "images_flickr_1k_test.zip",
+   "test_1k_flickr.csv"
+  ],
+  "loader_script": "not used; zip and CSV read directly",
+  "trust_remote_code": false,
+  "gated_on_hub": false,
+  "licence_declared_on_hub": null
+ },
+ "use": "Non-commercial educational evaluation only: metric features for a student hackathon entry.",
+ "decision": "User chose to use this Hub copy (option A, relayed by team lead, 7 Nov 2026); user is submitting the official access form; team will declare this use in the report.",
+ "redistribution": "None. No Flickr images in git, web/ or samples. Images stay in git-ignored data/flickr and are deleted after features are computed."
+}

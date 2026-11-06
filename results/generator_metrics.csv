@@ -1,0 +1,4 @@
+config,split,n,clip_l14,clip_l14_ci95_lo,clip_l14_ci95_hi,clip_b32_cos,fid,kid_x1000,cmmd_l14_x1000,hardware,engine,precision,steps,decoder,protocol
+S1-A,coco_1k,1000,26.637,26.438,26.841,0.312,,6.93,0.769,Apple M4,"Core ML (coremltools 9.0), CPU_AND_NE","8-bit palette, SiLU fix",1,TAESD,COCO val2017 captions; 5k reference center-crop 512 Lanczos; clean-fid clean mode; PNG only
+S1-FP16,coco_1k,1000,26.643,26.44,26.85,0.3119,,6.972,0.765,Apple M4,"Core ML (coremltools 9.0), CPU_AND_NE","FP16, SiLU fix",1,TAESD,COCO val2017 captions; 5k reference center-crop 512 Lanczos; clean-fid clean mode; PNG only
+S0.9-FP16,coco_1k,1000,26.194,25.999,26.388,0.3128,,8.808,0.643,Apple M4,"Core ML (coremltools 9.0), CPU_AND_NE","FP16, SiLU fix",1,TAESD,COCO val2017 captions; 5k reference center-crop 512 Lanczos; clean-fid clean mode; PNG only

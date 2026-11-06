@@ -86,9 +86,9 @@ def grid_ratio(rgb: np.ndarray, period: int = 8) -> float:
 
 
 def saturated_mask(rgb: np.ndarray) -> np.ndarray:
-    """Blobs clipped on all channels; kept only if big enough to be a defect, not a highlight."""
-    clipped = np.all(rgb >= 250, axis=-1) | np.all(rgb <= 5, axis=-1)
-    mask = clipped.astype(np.uint8)
+    """Blown-out white blobs, big enough to be a defect but too small to be sky or a wall.
+    Pure black is left alone: pupils and noses clip to black, and inpainting them damages faces."""
+    mask = np.all(rgb >= 250, axis=-1).astype(np.uint8)
     n, labels, stats, _ = cv2.connectedComponentsWithStats(mask, connectivity=8)
     keep = np.zeros_like(mask)
     area_min, area_max = 12, 0.02 * rgb.shape[0] * rgb.shape[1]

@@ -19,7 +19,7 @@ MIN_FREE_GB = 12.0  # lead lowered the floor from 15 at 00:12 on 7 Nov while dis
 # One-step DDPM constants at t=999 (alpha_cumprod 0.00466).
 SQRT_ONE_MINUS_ALPHA = 0.99766725
 SQRT_ALPHA = 0.06826489
-TEST_SPLITS = {"complex_test"}
+TEST_SPLITS = {"complex_test", "flickr_1k"}
 
 
 class DiskLow(RuntimeError):

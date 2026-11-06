@@ -211,8 +211,12 @@ def build(model: str, out: Path, weights: Path, extra: list[str], fresh: bool, f
     if not fp16_only:
         order += ["text_pal8", "unet_fix_pal8"]
     order += extra
+    # A palettized component needs its FP16 package, which --prune removes.
+    sources = {"text_pal8": "text_fp16", "text_pal6": "text_fp16", "unet_fix_pal8": "unet_fix_fp16", "unet_fix_pal6": "unet_fix_fp16"}
+    todo = [n for n in order if fresh or not (compiled_dir / f"{n}.mlmodelc").exists()]
+    needed_sources = {sources[n] for n in todo if n in sources}
     sd, td = weights / model, weights / "taesd"
-    if fresh or not all((compiled_dir / f"{n}.mlmodelc").exists() for n in order):
+    if todo:
         sd, td = download(model, weights)
 
     recipes = {
@@ -229,7 +233,7 @@ def build(model: str, out: Path, weights: Path, extra: list[str], fresh: bool, f
     for name in order:
         pkg = mdir / f"{name}.mlpackage"
         compiled = compiled_dir / f"{name}.mlmodelc"
-        if compiled.exists() and not fresh:
+        if compiled.exists() and not fresh and not (name in needed_sources and not pkg.exists()):
             continue
         if fresh and pkg.exists():
             shutil.rmtree(pkg)

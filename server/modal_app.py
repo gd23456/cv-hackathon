@@ -1,8 +1,10 @@
 """Modal deployment. Deploy from the repo root:
 
-    KSHANA_CORS_ORIGIN=https://gd23456.github.io modal deploy server/modal_app.py
+    KSHANA_MIN_CONTAINERS=0 modal deploy server/modal_app.py    # cold, nothing billed while idle
+    modal deploy server/modal_app.py                            # warm
 
-Redeploying resets autoscaler overrides and snapshots: freeze after submission.
+Go warm or cold without redeploying (a redeploy resets this override and snapshots):
+    python -c "import modal; modal.Function.from_name('kshana', 'web').update_autoscaler(min_containers=1)"
 """
 import os
 from pathlib import Path
@@ -21,13 +23,15 @@ cron_image = modal.Image.debian_slim()
     image=image,
     cpu=(2.0, 4.0),  # physical cores: 4 vCPU requested, up to 8. Warm cost follows the request.
     memory=6144,
-    min_containers=1,
+    min_containers=int(os.environ.get("KSHANA_MIN_CONTAINERS", "1")),
     max_containers=2,
+    scaledown_window=300,  # the page polls /health every 30 s, so an open page keeps its container
     timeout=60,
     startup_timeout=300,
     env={
         "KSHANA_CORS_ORIGIN": os.environ.get("KSHANA_CORS_ORIGIN", "https://gd23456.github.io"),
         "KSHANA_THREADS": "4",
+        "KSHANA_UNET_BACKEND": os.environ.get("KSHANA_UNET_BACKEND", "onnxruntime"),
     },
 )
 # Jobs live in this process's memory, so polls must reach the container that took the job.

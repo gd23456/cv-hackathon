@@ -23,12 +23,12 @@ const BUDGET_HINTS = {
 
 const $ = (id) => document.getElementById(id);
 const el = {
-  shell: document.querySelector(".shell"),
+  shell: document.querySelector(".shell"), report: $("report"),
   server: $("server"), serverText: $("server-text"),
   form: $("form"), prompt: $("prompt"), promptError: $("prompt-error"),
   go: $("go"), budgetHint: $("budget-hint"),
   frame: $("frame"), plate: $("plate"), slate: $("slate"),
-  strip: $("strip"), caption: $("caption"),
+  strip: $("strip"), caption: $("caption"), live: $("live"),
   samples: $("samples"), samplesGrid: $("samples-grid"),
   tier: $("tier"), tierName: $("tier-name"), tierReason: $("tier-reason"), notes: $("notes"),
   summary: $("check-summary"), checks: $("checks"),
@@ -258,7 +258,6 @@ function renderTimes(t) {
   const rows = [];
   if (t.queue_ms != null) rows.push(["Waited in queue", formatMs(t.queue_ms)]);
   if (t.first_image_ms != null) rows.push(["First image, after queue", formatMs(t.first_image_ms)]);
-  else if (t.last_attempt) rows.push(["First image", "ready"]);
   if (t.total_ms != null) rows.push(["Total", formatMs(t.total_ms)]);
   if (t.attempts != null) rows.push(["Attempts", String(t.attempts)]);
   if (t.last_attempt) {
@@ -309,6 +308,10 @@ function setPhase(phase) {
   el.frame.dataset.phase = phase;
 }
 
+function announce(text) {
+  if (el.live.textContent !== text) el.live.textContent = text;
+}
+
 function finishJob() {
   state.active = false;
   stopStrip();
@@ -319,8 +322,10 @@ function showFailure(phase, big, text, retry) {
   finishJob();
   setPhase(phase);
   el.plate.replaceChildren();
+  el.report.hidden = true; // no image, so nothing to report
   const nodes = [make("p", { class: "slate-big", text: big })];
   if (text) nodes.push(make("p", { class: "slate-text", text }));
+  announce(text ? `${big}. ${text}` : big);
   if (retry) {
     const btn = make("button", { class: "slate-btn", type: "button", text: "Try again" });
     btn.addEventListener("click", submit);
@@ -339,10 +344,15 @@ function renderJob(job) {
 
   const plan = job.timings && job.timings.plan;
   if (plan) state.budgetS = plan.budget_s;
+  if (job.status === "running" && !state.startedAt) {
+    state.startedAt = performance.now();
+    startStrip();
+  }
 
   if (job.best && job.best.image_b64 && job.best.version !== state.version) {
     state.version = job.best.version;
     slate();
+    announce("New image ready.");
     showImage(job.best, `Generated image for the prompt: ${state.prompt}`);
     if (state.startedAt && state.budgetS) addNotch((performance.now() - state.startedAt) / (state.budgetS * 1000));
   }
@@ -356,6 +366,7 @@ function renderJob(job) {
     case "queued": {
       setPhase("queued");
       const ahead = Math.max((job.queue_position || 1) - 1, 0);
+      announce(ahead === 0 ? "You're next." : `${ahead} ahead of you.`);
       slate(
         registerMark(),
         make("p", { class: "slate-big", text: ahead === 0 ? "You're next" : `${ahead} ahead of you` }),
@@ -364,13 +375,10 @@ function renderJob(job) {
       break;
     }
     case "running":
-      if (!state.startedAt) {
-        state.startedAt = performance.now();
-        startStrip();
-      }
       if (!job.best) {
         if (el.frame.dataset.phase !== "running") {
           setPhase("running");
+          announce("Making the first image.");
           slate(
             registerMark(),
             make("p", { class: "slate-big slate-num", text: "0.0 s" }),
@@ -386,7 +394,7 @@ function renderJob(job) {
       setPhase("done");
       paintStrip(1);
       slate();
-      el.caption.textContent = el.caption.textContent || "Done";
+      announce(el.caption.textContent ? `Finished. ${el.caption.textContent}` : "Finished.");
       break;
     case "refused":
       showFailure("refused", "Can't make this", job.error);
@@ -475,10 +483,9 @@ function countdown(big, text, seconds) {
 }
 
 function revealResult() {
-  // On a phone the frame is below the form. Blur first so the keyboard closes.
+  // On a phone the frame is below the form. Wait a frame for the keyboard to start closing.
   if (window.matchMedia("(max-width: 719px)").matches) {
-    el.frame.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "start" });
-    window.scrollBy(0, -24);
+    requestAnimationFrame(() => el.frame.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "start" }));
   }
 }
 
@@ -501,6 +508,7 @@ async function submit() {
   state.active = true;
   el.shell.removeAttribute("data-offline");
   el.samples.hidden = true;
+  el.report.hidden = false;
   el.plate.replaceChildren();
   clearResultPanels();
   buildStrip();
@@ -537,7 +545,7 @@ async function submit() {
   } else if (status === 422) {
     finishJob();
     setPhase("idle");
-    slate();
+    slate(make("p", { class: "slate-big", text: "Your image goes here" }));
     showFieldError(message || "That prompt can't be used. Please change it and try again.");
   } else if (status === 429) {
     countdown("That's the limit for now", message, body && body.retry_after ? body.retry_after : 30);

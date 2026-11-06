@@ -14,12 +14,16 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import FEATURES, RESULTS, guard_test_split  # noqa: E402
+from common import FEATURES, RESULTS, guard_test_split, read_split  # noqa: E402
 from configs import config_info  # noqa: E402
 
 FID_N = 5000
 BOOTSTRAP = 10000
-PROTOCOL = "COCO val2017 captions; 5k reference center-crop 512 Lanczos; clean-fid clean mode; PNG only"
+REFERENCES = {"coco_1k": "coco5k", "coco_5k": "coco5k", "coco_100": "coco5k", "flickr_1k": "flickr1k"}
+PROTOCOLS = {
+    "coco5k": "COCO val2017 captions; 5k reference center-crop 512 Lanczos; clean-fid clean mode; PNG only",
+    "flickr1k": "Flickr30K official test captions; own 1k reference center-crop 512 Lanczos; clean-fid clean mode; PNG only; separate protocol, not comparable with COCO rows",
+}
 
 
 def clip_headline(score: np.ndarray) -> np.ndarray:
@@ -76,12 +80,24 @@ def cmmd_x1000(gen: np.ndarray, ref: np.ndarray, sigma: float = 10.0) -> float:
 
 
 def load(config: str, split: str) -> dict:
-    with np.load(FEATURES / config / f"{split}.npz") as f:
-        return {k: f[k] for k in f.files}
+    path = FEATURES / config / f"{split}.npz"
+    if path.exists():
+        with np.load(path) as f:
+            return {k: f[k] for k in f.files}
+    # coco_1k is a strict subset of coco_5k with the same seeds, so a 5k run also answers the 1k question.
+    with np.load(FEATURES / config / "coco_5k.npz") as f:
+        full = {k: f[k] for k in f.files}
+    position = {i: n for n, i in enumerate(full["ids"].tolist())}
+    keep = [position[r["id"]] for r in read_split(split)]
+    return {k: v[keep] for k, v in full.items()}
 
 
-def load_reference() -> dict:
-    with np.load(FEATURES / "reference/coco5k.npz") as f:
+def load_reference(split: str) -> dict | None:
+    name = REFERENCES.get(split)
+    path = FEATURES / f"reference/{name}.npz"
+    if name is None or not path.exists():
+        return None
+    with np.load(path) as f:
         return {k: f[k] for k in f.files}
 
 
@@ -111,13 +127,13 @@ def summarize(config: str, split: str, feats: dict, ref: dict | None) -> dict:
         "clip_b32_cos": round(float(feats["clip_b32"].mean() / 100), 4),
         "fid": "", "kid_x1000": "", "cmmd_l14_x1000": "",
         "hardware": cfg["hardware"], "engine": cfg["engine"], "precision": cfg["precision"], "steps": cfg["steps"], "decoder": cfg["decoder"],
-        "protocol": PROTOCOL,
+        "protocol": PROTOCOLS.get(REFERENCES.get(split, ""), split),
     }
     if ref is not None:
         row["cmmd_l14_x1000"] = round(cmmd_x1000(feats["emb_l14"], ref["emb_l14"]), 3)
         if "inception" in feats and "inception" in ref:
             row["kid_x1000"] = round(kid_x1000(feats["inception"], ref["inception"]), 3)
-            if len(l14) == FID_N:
+            if len(l14) == FID_N and split == "coco_5k":
                 row["fid"] = round(fid(feats["inception"], ref["inception"]), 3)
     return row
 
@@ -130,8 +146,7 @@ def main() -> None:
     ap.add_argument("--final-test", action="store_true")
     args = ap.parse_args()
     guard_test_split(args.split, args.final_test)
-    ref_path = FEATURES / "reference/coco5k.npz"
-    ref = load_reference() if args.split.startswith("coco") and ref_path.exists() else None
+    ref = load_reference(args.split)
     feats = {c: load(c, args.split) for c in args.configs}
     rows = [summarize(c, args.split, feats[c], ref) for c in args.configs]
     upsert_csv(RESULTS / "generator_metrics.csv", rows, ("config", "split"))

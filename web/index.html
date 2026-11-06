@@ -31,7 +31,7 @@
 
 <main class="shell">
 
-  <section class="ticket" aria-label="Make an image">
+  <section class="ticket" aria-label="Make an image"><div class="ticket-in">
     <h1 class="mark"><span class="mark-c" aria-hidden="true">Kshana</span><span class="mark-m" aria-hidden="true">Kshana</span><span class="mark-k">Kshana</span></h1>
     <p class="lede">Type a prompt. The image improves until time runs out, and the checks say what it got right.</p>
 
@@ -65,9 +65,10 @@
 
       <button class="go" id="go" type="submit">Generate</button>
     </form>
-  </section>
+  </div></section>
 
   <section class="proof" aria-label="Result">
+    <p class="sr-only" id="live" aria-live="polite"></p>
     <div class="frame" id="frame" data-phase="idle">
       <div class="plate" id="plate"></div>
       <div class="slate" id="slate"></div>

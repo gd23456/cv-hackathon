@@ -10,9 +10,9 @@ from pathlib import Path
 
 import cv2
 import numpy as np
-import onnxruntime as ort
 from tokenizers import Tokenizer
 
+from .ort import open_model, session
 from .parser import COCO_INDEX, VERIFIABLE_RELATIONS, ObjectSpec, ParsedPrompt
 
 PRESENCE_CONF = 0.3
@@ -22,15 +22,6 @@ NMS_IOU = 0.45
 COLOUR_MIN_SHARE = 0.2
 
 PASS, FAIL, NOT_VERIFIABLE, INFO = "pass", "fail", "not_verifiable", "info"
-
-
-def _session(path: Path, threads: int | None) -> ort.InferenceSession:
-    so = ort.SessionOptions()
-    if threads:
-        so.intra_op_num_threads = int(threads)
-    so.inter_op_num_threads = 1
-    so.enable_cpu_mem_arena = False  # lower peak memory; the UNet already takes most of the budget
-    return ort.InferenceSession(str(path), so, providers=["CPUExecutionProvider"])
 
 
 @dataclass
@@ -44,10 +35,10 @@ class Detector:
     """YOLOX ONNX as released by Megvii: BGR 0-255 input, letterboxed, raw grid outputs."""
 
     def __init__(self, path: Path, threads: int | None = None, size: int = 640):
-        self.sess = _session(path, threads)
-        self.input = self.sess.get_inputs()[0].name
-        shape = self.sess.get_inputs()[0].shape
-        self.size = int(shape[2]) if isinstance(shape[2], int) else size
+        info = session(path, threads).get_inputs()[0]
+        self.input = info.name
+        self.size = int(info.shape[2]) if isinstance(info.shape[2], int) else size
+        self.sess = open_model(path, threads)
         grids, strides = [], []
         for stride in (8, 16, 32):
             n = self.size // stride
@@ -94,30 +85,21 @@ class Clip:
     _STD = np.array([0.26862954, 0.26130258, 0.27577711], np.float32)
 
     def __init__(self, models: Path, threads: int | None = None):
-        self.vision = _session(models / "clip_vision.onnx", threads)
-        self.text = _session(models / "clip_text.onnx", threads)
+        self.vision = open_model(models / "clip_vision.onnx", threads)
+        self.text = open_model(models / "clip_text.onnx", threads)
         self.tok = Tokenizer.from_file(str(models / "clip_tokenizer.json"))
         self.tok.no_padding()
         self.tok.no_truncation()
-        self.text_inputs = {i.name for i in self.text.get_inputs()}
 
     def embed_text(self, texts: list[str]) -> np.ndarray:
         rows = []
-        masks = []
         for t in texts:
             ids = self.tok.encode(t, add_special_tokens=True).ids[:77]
             if ids[-1] != 49407:
                 ids[-1] = 49407
-            masks.append([1] * len(ids) + [0] * (77 - len(ids)))
             rows.append(ids + [49407] * (77 - len(ids)))
-        out = []
-        for row, mask in zip(rows, masks):
-            feed = {"input_ids": np.array([row], np.int64)}
-            if "attention_mask" in self.text_inputs:
-                feed["attention_mask"] = np.array([mask], np.int64)
-            e = self.text.run(["text_embeds"], feed)[0][0]
-            out.append(e / np.linalg.norm(e))
-        return np.stack(out)
+        e = self.text.run(["text_embeds"], {"input_ids": np.array(rows, np.int64)})[0]
+        return e / np.linalg.norm(e, axis=1, keepdims=True)
 
     def embed_image(self, rgb: np.ndarray) -> np.ndarray:
         h, w = rgb.shape[:2]

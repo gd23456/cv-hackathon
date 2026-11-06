@@ -1,0 +1,15 @@
+kind,measure,value,device,os,config,conditions,source
+latency,Text ms,about 3,iPhone 15,iOS 26.5,S1-A variant A,"warm, 12 runs",app; team lead report 7 Nov 00:12
+latency,UNet ms,about 65,iPhone 15,iOS 26.5,S1-A variant A,"warm, 12 runs",app; team lead report 7 Nov 00:12
+latency,Decoder ms,about 13.5,iPhone 15,iOS 26.5,S1-A variant A,"warm, 12 runs",app; team lead report 7 Nov 00:12
+latency,Total ms,about 82,iPhone 15,iOS 26.5,S1-A variant A,"warm, 12 runs",app; team lead report 7 Nov 00:12
+load,First load s,66,iPhone 15,iOS 26.5,S1-A variant A,12 runs batch,app; team lead report 7 Nov 00:12
+load,Cached load s,20.5,iPhone 15,iOS 26.5,S1-A variant A,12 runs batch,app; team lead report 7 Nov 00:12
+memory,Footprint MB,628-742,iPhone 15,iOS 26.5,S1-A variant A,12 runs batch,app; team lead report 7 Nov 00:12
+memory,Peak MB,about 1198,iPhone 15,iOS 26.5,S1-A variant A,12 runs batch,app; team lead report 7 Nov 00:12
+latency,Image model ms,about 67,iPhone 15,iOS 26.5,S1-A variant A,"healthy runs, phone hot, thermal state serious",app; team lead update 7 Nov
+latency,End to end ms,86-98,iPhone 15,iOS 26.5,S1-A variant A,"healthy runs, phone hot, thermal state serious",app; team lead update 7 Nov
+load,First load s,29,iPhone 15,iOS 26.5,S1-A variant A,healthy runs,app; team lead update 7 Nov
+load,Cached load s,13,iPhone 15,iOS 26.5,S1-A variant A,healthy runs,app; team lead update 7 Nov
+memory,Peak MB,about 1200,iPhone 15,iOS 26.5,S1-A variant A,healthy runs,app; team lead update 7 Nov
+failure,End to end ms,930-1380,iPhone 15,iOS 26.5,S1-A variant A,"separate failure case: fell back to CPU, not a healthy run",app; team lead update 7 Nov

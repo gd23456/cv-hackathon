@@ -1,7 +1,8 @@
 #!/usr/bin/env python
-"""Latency and memory for one Core ML variant, in fresh processes, on this Mac. Not iPhone numbers.
+"""Latency and memory for one config, in fresh processes, on this Mac. Not iPhone numbers.
 
     python eval/bench_coreml.py --config S1-A --warm 200 --cold 3
+    python eval/bench_coreml.py --config B1 --warm 30 --cold 2
 
 Warm: per-image time over fixed prompts after a discard. Cold: process start to first image, repeated.
 Memory: process max RSS, which excludes the system Neural Engine service, and the service's RSS for context.
@@ -18,7 +19,7 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import COREML, RESULTS, hardware_label, read_split  # noqa: E402
+from common import COREML, HF, RESULTS, hardware_label, read_split  # noqa: E402
 from configs import CONFIGS  # noqa: E402
 
 DISCARD = 5
@@ -31,11 +32,10 @@ def service_rss_mb() -> float | None:
 
 
 def child(config: str, warm: int) -> None:
-    from generate_coreml import CoreMLGenerator
+    from generators import make_generator
 
-    cfg = CONFIGS[config]
     t0 = time.perf_counter()
-    gen = CoreMLGenerator(cfg["model"], cfg["variant"])
+    gen = make_generator(config)
     load_s = time.perf_counter() - t0
     rows = read_split("coco_1k")
     first_ms = gen.generate(rows[0]["prompt"], rows[0]["seed"])[1]["total_ms"]
@@ -46,12 +46,22 @@ def child(config: str, warm: int) -> None:
     }), flush=True)
 
 
-def size_mib(config: str) -> float:
+def size_mib(config: str) -> float | str:
     cfg = CONFIGS[config]
-    manifest = json.loads((COREML / cfg["model"] / "manifest.json").read_text())
-    from generate_coreml import COMPONENTS
+    if cfg["kind"] == "coreml":
+        from generate_coreml import COMPONENTS
 
-    return round(sum(manifest["components"][n]["compiled_bytes"] for n in COMPONENTS[cfg["variant"]]) / 2**20, 1)
+        manifest = json.loads((COREML / cfg["model"] / "manifest.json").read_text())
+        return round(sum(manifest["components"][n]["compiled_bytes"] for n in COMPONENTS[cfg["variant"]]) / 2**20, 1)
+    if cfg["kind"] == "diffusers":
+        folder = HF / cfg["repo"].split("/")[-1]
+        return round(sum(f.stat().st_size for f in folder.rglob("*.safetensors")) / 2**20, 1)
+    return ""
+
+
+def mean_of(runs: list[dict], key: str) -> float | str:
+    values = [r[key] for r in runs if key in r]
+    return round(float(np.mean(values)), 1) if values else ""
 
 
 def main() -> None:
@@ -77,11 +87,10 @@ def main() -> None:
     row = {
         "config": args.config, "hardware": hardware_label(), "engine": CONFIGS[args.config]["engine"], "n_warm": len(total),
         "warm_mean_ms": round(float(total.mean()), 1), "warm_p50_ms": round(float(np.percentile(total, 50)), 1), "warm_p95_ms": round(float(np.percentile(total, 95)), 1),
-        "text_ms": round(float(np.mean([r["text_ms"] for r in res["runs"]])), 1), "unet_ms": round(float(np.mean([r["unet_ms"] for r in res["runs"]])), 1),
-        "decoder_ms": round(float(np.mean([r["dec_ms"] for r in res["runs"]])), 1),
+        "text_ms": mean_of(res["runs"], "text_ms"), "unet_ms": mean_of(res["runs"], "unet_ms"), "decoder_ms": mean_of(res["runs"], "dec_ms"),
         "cold_to_first_image_s_mean": round(float(np.mean(cold)), 2), "n_cold": len(cold),
         "process_maxrss_MB": round(res["maxrss_MB"], 0), "aned_service_rss_MB": res["aned_rss_MB"], "size_MiB": size_mib(args.config),
-        "scope": "text + UNet + decoder, no PNG write; memory excludes Neural Engine service unless stated",
+        "scope": "full generation, no PNG write; cold is model load plus first image, with OS caches warm; memory is process max RSS, excluding the Neural Engine service",
     }
     upsert_csv(RESULTS / "latency.csv", [row], ("config", "hardware", "engine"))
     print(row)

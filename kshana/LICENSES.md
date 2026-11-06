@@ -7,6 +7,7 @@
 | spaCy en_core_web_sm | explosion/spacy-models | MIT |
 | OpenVINO | openvinotoolkit/openvino | Apache-2.0 |
 | ONNX Runtime | microsoft/onnxruntime | MIT |
+| Streamlit (backup demo only) | streamlit/streamlit | Apache-2.0 |
 | OpenCV contrib | opencv/opencv_contrib (incl. BRISQUE model files) | Apache-2.0 |
 
 No AGPL dependencies. MobileCLIP was not used on the server: its weights are under Apple's research licence (apple-amlr).

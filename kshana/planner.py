@@ -6,7 +6,7 @@ from dataclasses import asdict, dataclass
 VERIFIED, STANDARD, CONSTRAINED, SURVIVAL = "Verified", "Standard", "Constrained", "Survival"
 FULL, SAFETY_ONLY = "full", "safety"
 
-BUDGET_SECONDS = {"fast": 4.0, "balanced": 10.0, "best": 24.0}
+BUDGET_SECONDS = {"fast": 4.0, "balanced": 6.0, "best": 8.0}
 JOB_TIMEOUT_S = 30.0
 LOW_MEMORY_GB = 2.0
 SAVE_DATA_RES = 384

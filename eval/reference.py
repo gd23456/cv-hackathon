@@ -19,8 +19,9 @@ from common import DATA, FEATURES  # noqa: E402
 BATCH = 64
 
 
-def real_image(path: Path) -> np.ndarray:
-    with Image.open(path) as im:
+def real_image(source) -> np.ndarray:
+    """source: a path or a binary file object."""
+    with Image.open(source) as im:
         im = im.convert("RGB")
         side = min(im.size)
         left, top = (im.width - side) // 2, (im.height - side) // 2
