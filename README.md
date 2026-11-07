@@ -4,6 +4,13 @@ Resource-efficient text-to-image for mobile devices. Computer Vision Hackathon 2
 
 Results: [`eval_P3_T78.md`](eval_P3_T78.md). Architecture: [`docs/architecture.png`](docs/architecture.png). AI use: [`docs/AI_USAGE.md`](docs/AI_USAGE.md).
 
+## Quickstart
+
+```sh
+pip install -r requirements.txt
+PYTHONPATH=. python run_inference.py --prompts samples/prompts.txt --output_dir results/samples
+```
+
 ## Run the website
 
 ```sh
