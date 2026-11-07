@@ -170,7 +170,7 @@
 
     const legend = document.createElement("ul");
     legend.className = "legend";
-    legend.innerHTML = '<li><i style="background:var(--m)"></i>Kshana</li><li><i style="background:#0079a8"></i>Baselines</li>';
+    legend.innerHTML = '<li><i style="background:var(--c)"></i>Kshana</li><li><i style="background:#c9a66b"></i>Baselines</li>';
     host.replaceChildren(legend, svg, tip);
   }
 

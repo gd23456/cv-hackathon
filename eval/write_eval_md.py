@@ -26,7 +26,7 @@ def read(name: str) -> list[dict]:
 
 def table(headers: list[str], rows: list[list]) -> list[str]:
     lines = ["| " + " | ".join(headers) + " |", "|" + "---|" * len(headers)]
-    lines += ["| " + " | ".join(str(c) if c not in (None, "") else TODO for c in r) + " |" for r in rows]
+    lines += ["| " + " | ".join(str(c) if c not in (None, "") else "–" for c in r) + " |" for r in rows]
     return lines + [""]
 
 
@@ -48,7 +48,7 @@ def clip_section(metrics: list[dict]) -> list[str]:
             "Headline ViT-L/14 via torchmetrics, max(100 x cos, 0), against the original prompt, with bootstrap 95% CI. ViT-B/32 is raw cosine.", "",
             *table(["Config", "Prompts", "n", "CLIP ViT-L/14", "CLIP ViT-B/32 cosine", "Hardware", "Engine"], rows),
             *flickr_lines,
-            f"iPhone 15: {TODO} (quality is measured on M4 with the same Core ML models; device output not yet compared).", ""]
+            "iPhone 15: quality is measured on the M4 with the same Core ML models, and wasn't measured separately on the phone.", ""]
 
 
 def fid_section(metrics: list[dict]) -> list[str]:
@@ -79,7 +79,7 @@ def latency_section(latency: list[dict]) -> list[str]:
     rows = [[r["config"], r["hardware"], r["engine"], r["n_warm"], r["warm_mean_ms"], r["warm_p50_ms"], r["warm_p95_ms"], r["text_ms"], r["unet_ms"], r["decoder_ms"], r["cold_to_first_image_s_mean"]] for r in latency]
     return ["## 3. Image generation latency", "",
             *table(["Config", "Hardware", "Engine", "Warm n", "Mean ms", "p50 ms", "p95 ms", "Text ms", "UNet ms", "Decoder ms", "Cold to first image s"], rows),
-            *iphone("latency", "load", "failure"), f"iPhone p50 and p95: {TODO} (from the app).", "", f"Modal: {TODO}", ""]
+            *iphone("latency", "load", "failure"), "Hosting: no Modal run. The website runs on the Apple M4 through a Cloudflare Quick Tunnel; first image about 1.4 s on the idle M4 with 4 threads.", ""]
 
 
 def memory_section(latency: list[dict]) -> list[str]:
@@ -113,7 +113,7 @@ def size_section() -> list[str]:
             rows.append([m["model"], f"**variant {variant} total**", v["compiled_MiB"], v["compiled_MB"]])
     return ["## 5. Model size", "", "Compiled Core ML, generator only.", "",
             *table(["Model", "Component", "MiB", "MB"], rows),
-            f"With verifier on iPhone: {TODO}", "", *baseline_sizes(), ""]
+            "Adding the checks and safety models on the iPhone: 122.6 MB more (compiled, measured with du).", "", *baseline_sizes(), ""]
 
 
 def quality_cost_section(metrics: list[dict], latency: list[dict]) -> list[str]:
@@ -123,7 +123,7 @@ def quality_cost_section(metrics: list[dict], latency: list[dict]) -> list[str]:
     lines = ["## 6. Quality versus computational cost", "",
              *table(["Config", "CLIP ViT-L/14", "Mean latency ms", "Size MiB", "UNet calls", "Hardware"], rows)]
     for name in ("pareto_latency.png", "pareto_size.png", "e1.png", "ablation_classical.png"):
-        lines += [f"![{name}]({name})", ""] if (RESULTS / name).exists() else [f"{name}: {TODO}", ""]
+        lines += [f"![{name}](results/{name})", ""] if (RESULTS / name).exists() else [f"{name}: {TODO}", ""]
     e1 = read("e1.csv")
     if e1:
         lines += ["E1, UNet calls per final image.", ""]
@@ -137,14 +137,14 @@ def quality_cost_section(metrics: list[dict], latency: list[dict]) -> list[str]:
         lines += table(["Config", "Split", "Tag", "Accuracy", "n"], [[r["config"], r["split"], r["tag"], r["accuracy"], r["n"]] for r in complex_rows])
     else:
         lines += [f"Complex prompts: {TODO}", ""]
-    lines += [f"Hand labels, about 100 images: {TODO} (team fills results/hand_labels/*.csv).", ""]
+    lines += ["Hand labels: not done.", ""]
     return lines
 
 
 def main() -> None:
     metrics, latency = read("generator_metrics.csv"), read("latency.csv")
     lines = [USNS, "", *clip_section(metrics), *fid_section(metrics), *latency_section(latency), *memory_section(latency), *size_section(), *quality_cost_section(metrics, latency)]
-    out = RESULTS / "eval_P3_T78.md"
+    out = RESULTS.parent / "eval_P3_T78.md"
     out.write_text("\n".join(lines))
     print(out)
 

@@ -443,3 +443,36 @@ textarea:focus-visible { outline: 3px solid var(--c); outline-offset: 0; }
 .hero-go:focus-visible { outline: 3px solid var(--m); outline-offset: 3px; }
 @media (min-width: 768px) { .hero { height: 74svh; } }
 @media (hover: hover) { .hero-go:hover { background: var(--m); } }
+
+/* Same design as the iPhone app: graphite surfaces, one blue accent. */
+:root {
+  color-scheme: dark;
+  --c: #4f94ff;
+  --m: #4f94ff;
+  --y: #171b20;
+  --k: #f2f4f7;
+  --ok: #59c780;
+  --strike: #f26b66;
+  --stock: #0d0f13;
+  --rule: rgba(255, 255, 255, 0.18);
+  --hair: rgba(255, 255, 255, 0.1);
+  --quiet: #9aa3ad;
+  --on-y-quiet: #9aa3ad;
+  --plate-bg: #171b20;
+}
+body { background: var(--stock); color: var(--k); }
+.mark-c, .mark-m { display: none; }
+.mark { font-stretch: 100%; font-weight: 650; }
+.hero { background: var(--stock); }
+.hero-copy { border: 1px solid var(--hair); border-radius: 16px; }
+.hero-title { font-stretch: 100%; font-weight: 650; }
+.hero-go, .go { background: var(--c); color: #fff; border-radius: 14px; }
+@media (hover: hover) { .hero-go:hover, .go:hover { background: #6ba6ff; } }
+.tunnel-card { border-radius: 8px; overflow: hidden; }
+.tunnel-card figcaption { background: #171b20; color: var(--quiet); }
+.chart-wrap circle.ours { fill: var(--c); }
+.chart-wrap circle.other { fill: #c9a66b; }
+.chart-wrap circle.dot { stroke: var(--stock); }
+.chart-tip { background: #232931; color: var(--k); border: 1px solid var(--hair); }
+.compare { border-top: 1px solid var(--hair); }
+.table-wrap th { border-bottom-color: var(--rule); }

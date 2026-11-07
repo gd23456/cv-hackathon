@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 790" width="1200" height="790" font-family="Helvetica, Arial, sans-serif">
+  <title>Kshana system architecture</title>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#3a4350"/></marker>
+    <style>
+      .b { fill: #ffffff; stroke: #3a4350; stroke-width: 1.5; }
+      .m { fill: #e8f0ff; stroke: #2f6fdb; stroke-width: 1.5; }
+      .c { fill: #eef7f0; stroke: #2c8a50; stroke-width: 1.5; }
+      .s { fill: #fdeeee; stroke: #c9403a; stroke-width: 1.5; }
+      .t { font-size: 14px; font-weight: 600; fill: #12161b; text-anchor: middle; }
+      .d { font-size: 12px; fill: #4a5563; text-anchor: middle; }
+      .h { font-size: 15px; font-weight: 700; fill: #12161b; }
+      .l { font-size: 12px; fill: #4a5563; }
+      line, path.f { stroke: #3a4350; stroke-width: 1.5; fill: none; }
+    </style>
+  </defs>
+  <rect width="1200" height="790" fill="#ffffff"/>
+
+  <text x="40" y="34" class="h">Shared flow: the same logic on the iPhone (Swift, Core ML) and the website (Python, ONNX Runtime)</text>
+
+  <rect x="40" y="55" width="140" height="62" rx="8" class="b"/><text x="110" y="82" class="t">Prompt</text><text x="110" y="101" class="d">from the user</text>
+  <rect x="220" y="55" width="170" height="62" rx="8" class="s"/><text x="305" y="82" class="t">Prompt safety filter</text><text x="305" y="101" class="d">words, spelling tricks</text>
+  <rect x="430" y="55" width="170" height="62" rx="8" class="b"/><text x="515" y="82" class="t">Prompt parser</text><text x="515" y="101" class="d">objects, colours, positions</text>
+  <rect x="640" y="55" width="170" height="62" rx="8" class="b"/><text x="725" y="82" class="t">Rewordings</text><text x="725" y="101" class="d">target object first</text>
+  <rect x="850" y="55" width="310" height="62" rx="8" class="b"/><text x="1005" y="82" class="t">Adaptive planner</text><text x="1005" y="101" class="d">time budget, heat, memory, device: seeds and resolution</text>
+  <line x1="180" y1="86" x2="218" y2="86" marker-end="url(#a)"/><line x1="390" y1="86" x2="428" y2="86" marker-end="url(#a)"/><line x1="600" y1="86" x2="638" y2="86" marker-end="url(#a)"/><line x1="810" y1="86" x2="848" y2="86" marker-end="url(#a)"/>
+
+  <rect x="40" y="150" width="1120" height="282" rx="12" fill="#f6f8fa" stroke="#c6ccd4"/>
+  <text x="60" y="176" class="h">Anytime search loop: try new seeds until the budget ends, and show each better image</text>
+
+  <rect x="60" y="195" width="165" height="66" rx="8" class="m"/><text x="142" y="223" class="t">Text encoder</text><text x="142" y="243" class="d">CLIP-L, 8-bit</text>
+  <rect x="255" y="195" width="185" height="66" rx="8" class="m"/><text x="347" y="223" class="t">SDXS UNet, one step</text><text x="347" y="243" class="d">8-bit, SiLU fix on Neural Engine</text>
+  <rect x="470" y="195" width="165" height="66" rx="8" class="m"/><text x="552" y="223" class="t">TAESD decoder</text><text x="552" y="243" class="d">512 px image</text>
+  <rect x="665" y="195" width="215" height="66" rx="8" class="c"/><text x="772" y="223" class="t">Classical quality checks</text><text x="772" y="243" class="d">blank, grid, clipping, sharpness</text>
+  <rect x="910" y="195" width="230" height="66" rx="8" class="s"/><text x="1025" y="223" class="t">Output safety gate</text><text x="1025" y="243" class="d">classifier, skin ratio. Fails closed</text>
+  <line x1="225" y1="228" x2="253" y2="228" marker-end="url(#a)"/><line x1="440" y1="228" x2="468" y2="228" marker-end="url(#a)"/><line x1="635" y1="228" x2="663" y2="228" marker-end="url(#a)"/><line x1="880" y1="228" x2="908" y2="228" marker-end="url(#a)"/>
+
+  <rect x="665" y="310" width="475" height="96" rx="8" class="b"/><text x="902" y="336" class="t">Verifier</text><text x="902" y="358" class="d">object detector: presence, counts, positions  |  HSV: colours</text><text x="902" y="378" class="d">small CLIP: prompt alignment  |  iPhone only: hand pose, aesthetics</text>
+  <path class="f" d="M1025 261V308" marker-end="url(#a)"/>
+  <rect x="255" y="310" width="380" height="96" rx="8" class="b"/><text x="445" y="340" class="t">Score and keep the best image</text><text x="445" y="362" class="d">checks, alignment, minus artifact and extra-object penalties</text><text x="445" y="382" class="d">rejected images are never shown or saved</text>
+  <line x1="665" y1="358" x2="637" y2="358" marker-end="url(#a)"/>
+  <path class="f" d="M255 358H142V263" marker-end="url(#a)"/><text x="150" y="378" class="l">next seed</text>
+
+  <rect x="255" y="460" width="210" height="66" rx="8" class="c"/><text x="360" y="488" class="t">Classical enhancement</text><text x="360" y="508" class="d">colour, CLAHE, edges: gated</text>
+  <rect x="505" y="460" width="210" height="66" rx="8" class="b"/><text x="610" y="488" class="t">Result</text><text x="610" y="508" class="d">image, checks, timings, reason</text>
+  <path class="f" d="M360 406V458" marker-end="url(#a)"/><line x1="465" y1="493" x2="503" y2="493" marker-end="url(#a)"/>
+
+  <text x="40" y="570" class="h">Where it runs</text>
+  <rect x="40" y="585" width="350" height="96" rx="10" class="b"/><text x="215" y="612" class="t">iPhone 15 app (no network)</text><text x="215" y="634" class="d">SwiftUI, Core ML on the Neural Engine, Vision</text><text x="215" y="654" class="d">YOLOv3-Tiny, MobileCLIP, Marqo classifier</text>
+  <rect x="425" y="585" width="350" height="96" rx="10" class="b"/><text x="600" y="612" class="t">Website</text><text x="600" y="634" class="d">Page, FastAPI, job queue, ONNX Runtime on Apple M4</text><text x="600" y="654" class="d">Public through a Cloudflare Quick Tunnel; YOLOX, CLIP</text>
+  <rect x="810" y="585" width="350" height="96" rx="10" class="b"/><text x="985" y="612" class="t">Evaluation (offline)</text><text x="985" y="634" class="d">COCO, Flickr30K, GenEval and CompBench prompts</text><text x="985" y="654" class="d">CLIP, FID, KID, CMMD, DETR scorer, safety red-team</text>
+
+  <text x="40" y="720" class="l">Colour key:</text>
+  <rect x="115" y="707" width="20" height="16" class="m"/><text x="142" y="720" class="l">generator</text>
+  <rect x="225" y="707" width="20" height="16" class="c"/><text x="252" y="720" class="l">classical computer vision</text>
+  <rect x="415" y="707" width="20" height="16" class="s"/><text x="442" y="720" class="l">safety</text>
+  <text x="40" y="752" class="l">Server order differs slightly: classical enhancement runs before the safety gate and verifier, on each candidate.</text>
+</svg>

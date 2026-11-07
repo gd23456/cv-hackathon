@@ -18,7 +18,7 @@ Flickr30K, separate protocol: official 1k test captions, own real-image referenc
 |---|---|---|---|---|---|---|
 | S1-A | flickr_1k | 1000 | 27.83 [27.607, 28.06] | 0.3247 | Apple M4 | Core ML (coremltools 9.0), CPU_AND_NE |
 
-iPhone 15: TODO: not measured yet (quality is measured on M4 with the same Core ML models; device output not yet compared).
+iPhone 15: quality is measured on the M4 with the same Core ML models, and wasn't measured separately on the phone.
 
 ## 2. FID
 
@@ -51,7 +51,7 @@ Flickr30K, separate protocol: KID against 1,000 Flickr30K test images, preproces
 | S1-A | Apple M4 | Core ML (coremltools 9.0), CPU_AND_NE | 200 | 57.5 | 57.5 | 59.0 | 2.8 | 45.6 | 9.1 | 4.15 |
 | S1-FP16 | Apple M4 | Core ML (coremltools 9.0), CPU_AND_NE | 200 | 63.8 | 63.7 | 65.0 | 3.3 | 51.4 | 9.1 | 2.79 |
 | S0.9-FP16 | Apple M4 | Core ML (coremltools 9.0), CPU_AND_NE | 200 | 84.4 | 84.2 | 87.5 | 10.5 | 64.7 | 9.2 | 5.3 |
-| B1 | Apple M4 | PyTorch 2.7 MPS, fp32 compute | 30 | 1364.8 | 1364.4 | 1391.5 | TODO: not measured yet | TODO: not measured yet | TODO: not measured yet | 8.01 |
+| B1 | Apple M4 | PyTorch 2.7 MPS, fp32 compute | 30 | 1364.8 | 1364.4 | 1391.5 | – | – | – | 8.01 |
 
 | iPhone measure | Value | Device | OS | Config | Conditions | Source |
 |---|---|---|---|---|---|---|
@@ -66,10 +66,12 @@ Flickr30K, separate protocol: KID against 1,000 Flickr30K test images, preproces
 | First load s | 29 | iPhone 15 | iOS 26.5 | S1-A variant A | healthy runs | app; team lead update 7 Nov |
 | Cached load s | 13 | iPhone 15 | iOS 26.5 | S1-A variant A | healthy runs | app; team lead update 7 Nov |
 | End to end ms | 930-1380 | iPhone 15 | iOS 26.5 | S1-A variant A | separate failure case: fell back to CPU, not a healthy run | app; team lead update 7 Nov |
+| Generator mean ms | 88.3 | iPhone 15 | iOS 26.5 | S1-A variant A | warm, cool phone (thermal nominal), 6 runs | bench.txt 7 Nov 05:45 |
+| Generator p95 ms | 91.8 | iPhone 15 | iOS 26.5 | S1-A variant A | warm, cool phone (thermal nominal), 6 runs | bench.txt 7 Nov 05:45 |
+| First image ms | 113 | iPhone 15 | iOS 26.5 | S1-A variant A | including safety gate and checks, Best budget | bench.txt 7 Nov 05:45 |
+| Cached load s | 15.4 | iPhone 15 | iOS 26.5 | S1-A variant A | models only, one acceleration reload needed | bench.txt 7 Nov 05:45 |
 
-iPhone p50 and p95: TODO: not measured yet (from the app).
-
-Modal: TODO: not measured yet
+Hosting: no Modal run. The website runs on the Apple M4 through a Cloudflare Quick Tunnel; first image about 1.4 s on the idle M4 with 4 threads.
 
 ## 4. Peak memory consumption
 
@@ -85,6 +87,8 @@ Modal: TODO: not measured yet
 | Footprint MB | 628-742 | iPhone 15 | iOS 26.5 | S1-A variant A | 12 runs batch | app; team lead report 7 Nov 00:12 |
 | Peak MB | about 1198 | iPhone 15 | iOS 26.5 | S1-A variant A | 12 runs batch | app; team lead report 7 Nov 00:12 |
 | Peak MB | about 1200 | iPhone 15 | iOS 26.5 | S1-A variant A | healthy runs | app; team lead update 7 Nov |
+| Footprint MB | 660-675 | iPhone 15 | iOS 26.5 | S1-A variant A | after load and at end; may omit some Neural Engine memory | bench.txt 7 Nov 05:45 |
+| Peak footprint MB | 1212 | iPhone 15 | iOS 26.5 | S1-A variant A | lifetime peak, during load | bench.txt 7 Nov 05:45 |
 
 ## 5. Model size
 
@@ -104,7 +108,7 @@ Compiled Core ML, generator only.
 | sdxs-dreamshaper | **variant A total** | 448.0 | 469.8 |
 | sdxs-dreamshaper | **variant FP16 total** | 819.6 | 859.5 |
 
-With verifier on iPhone: TODO: not measured yet
+Adding the checks and safety models on the iPhone: 122.6 MB more (compiled, measured with du).
 
 | Baseline | MiB | MB |
 |---|---|---|
@@ -121,9 +125,9 @@ With verifier on iPhone: TODO: not measured yet
 | S0.9-FP16 | 26.194 [25.999, 26.388] | 84.4 | 1258.1 | 1 | Apple M4 |
 | B1 | 26.176 [25.983, 26.369] | 1364.8 | 2460.5 | 1 | Apple M4 |
 
-![pareto_latency.png](pareto_latency.png)
+![pareto_latency.png](results/pareto_latency.png)
 
-![pareto_size.png](pareto_size.png)
+![pareto_size.png](results/pareto_size.png)
 
 e1.png: TODO: not measured yet
 
@@ -133,7 +137,7 @@ E1, UNet calls per final image.
 
 | Split | C | Method | Prompts | CLIP ViT-L/14 | Count | Position | Colour | All checks | Engine |
 |---|---|---|---|---|---|---|---|---|---|
-| coco_1k | 1 | SD-Turbo C steps | 1000 | 26.176 | TODO: not measured yet | TODO: not measured yet | TODO: not measured yet | TODO: not measured yet | PyTorch 2.7 MPS, fp32 compute |
+| coco_1k | 1 | SD-Turbo C steps | 1000 | 26.176 | – | – | – | – | PyTorch 2.7 MPS, fp32 compute |
 
 Complex prompts, GenEval rules with DETR-R101 boxes. Not comparable with published GenEval numbers.
 
@@ -147,4 +151,4 @@ Complex prompts, GenEval rules with DETR-R101 boxes. Not comparable with publish
 | S1-A | complex_test | spatial | 0.2391 | 92 |
 | S1-A | complex_test | two_object | 0.3947 | 76 |
 
-Hand labels, about 100 images: TODO: not measured yet (team fills results/hand_labels/*.csv).
+Hand labels: not done.
