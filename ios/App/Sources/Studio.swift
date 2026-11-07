@@ -229,7 +229,8 @@ final class Studio {
 
     /// Runs one real search through the animated interface: `--ui-test`.
     func runInterfaceTest() async {
-        prompt = "A red apple to the left of a blue cup"
+        let override = CommandLine.arguments.first { $0.hasPrefix("--ui-prompt=") }?.dropFirst(12)
+        prompt = override.map(String.init) ?? "A red apple to the left of a blue cup"
         budget = .best
         generate()
         await generationTask?.value

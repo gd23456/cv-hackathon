@@ -134,17 +134,24 @@ public actor GenerationSession {
                 var checks: [CheckResult] = []
                 var alignment: Float?
                 var detections: [Detection] = []
+                var handPenalty = 0.0
+                var handCheck: CheckResult?
                 var verifyMs = 0.0
                 if useVerifier, let verifier {
                     let verification = try await verifier.verify(generated.image, prompt: trimmed, parsed: parsed)
                     checks = verification.checks
                     alignment = verification.alignment
                     detections = verification.detections
+                    handPenalty = verification.hands?.penalty ?? 0
+                    handCheck = verification.hands?.check
                     verifyMs = verification.detectMs + verification.alignMs
                 }
 
                 let score = Planner.score(checks: checks, alignment: alignment ?? 0, quality: quality)
                     - Planner.extrasPenalty(parsed, detections: detections)
+                    - handPenalty
+                // Added after scoring: the hand estimate adjusts the score, but isn't a prompt fact.
+                if let handCheck { checks.append(handCheck) }
                 let isBest = best.map { score > $0.score } ?? true
                 let candidate = CandidateResult(
                     index: index, seed: seed, image: generated.image, score: score, checks: checks,

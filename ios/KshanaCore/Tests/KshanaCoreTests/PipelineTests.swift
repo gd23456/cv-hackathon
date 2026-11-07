@@ -228,6 +228,16 @@ private let calm = DeviceState(thermal: .nominal, lowPower: false, availableMB: 
         #expect(plan.reason.contains("memory"))
     }
 
+    @Test func `broken hands lose more points than missing ones, and no hands lose none`() {
+        #expect(HandReport(plausibleHands: 2, brokenHands: 0, missingHands: 0).penalty == 0)
+        #expect(HandReport(plausibleHands: 0, brokenHands: 0, missingHands: 0).check == nil)
+        let broken = HandReport(plausibleHands: 0, brokenHands: 1, missingHands: 0)
+        let missing = HandReport(plausibleHands: 0, brokenHands: 0, missingHands: 1)
+        #expect(broken.penalty > missing.penalty)
+        #expect(broken.check?.state == .failed)
+        #expect(HandReport(plausibleHands: 1, brokenHands: 0, missingHands: 0).check?.state == .passed)
+    }
+
     @Test func `extra copies of a single object lose points`() {
         let prompt = PromptParser.parse("a cup on a bench")
         let cup = Detection(label: "cup", confidence: 0.8, box: .zero)
