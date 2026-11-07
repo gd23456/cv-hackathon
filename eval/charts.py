@@ -50,6 +50,24 @@ def num(value: str) -> float | None:
         return None
 
 
+NAMES = {"S1-A": "Kshana 8-bit (shipped)", "S1-FP16": "Kshana uncompressed", "S0.9-FP16": "SDXS 0.9", "B1": "SD-Turbo, GPU", "B0": "SD 1.5, GPU"}
+
+
+def label_point(ax, p: dict, x_key: str) -> None:
+    """Direct labels. The two Kshana points sit almost on top of each other, so they get set positions."""
+    name = NAMES.get(p["config"], p["config"])
+    at = (p[x_key], p["clip"])
+    color = INK if p["config"] == SHIPPED else INK_2
+    if p["config"] == SHIPPED:
+        ax.annotate(name, at, textcoords="offset points", xytext=(26, -20), fontsize=9, color=color, arrowprops={"arrowstyle": "-", "color": BLUE, "lw": 0.8, "shrinkB": 4})
+    elif p["config"] == "S1-FP16":
+        ax.annotate(name, at, textcoords="offset points", xytext=(8, 5), fontsize=9, color=color)
+    elif p["config"] in ("B0", "B1"):
+        ax.annotate(name, at, textcoords="offset points", xytext=(-8, 5), ha="right", fontsize=9, color=color)
+    else:
+        ax.annotate(name, at, textcoords="offset points", xytext=(8, 5), fontsize=9, color=color)
+
+
 def scatter(points: list[dict], x_key: str, x_label: str, title: str, out: str, logx: bool = True) -> None:
     """Every config, one hue: the shipped config is blue, everything else neutral, all labelled."""
     if len(points) < 2:
@@ -59,7 +77,7 @@ def scatter(points: list[dict], x_key: str, x_label: str, title: str, out: str, 
         color = BLUE if p["config"] == SHIPPED else NEUTRAL
         ax.errorbar(p[x_key], p["clip"], yerr=[[p["clip"] - p["lo"]], [p["hi"] - p["clip"]]], fmt="none", ecolor=color, elinewidth=1.2, capsize=0)
         ax.scatter(p[x_key], p["clip"], s=64, c=color, edgecolors=SURFACE, linewidths=1.5, zorder=3)
-        ax.annotate(p["config"], (p[x_key], p["clip"]), textcoords="offset points", xytext=(7, 5), fontsize=9, color=INK if p["config"] == SHIPPED else INK_2)
+        label_point(ax, p, x_key)
     if logx:
         ax.set_xscale("log")
     ax.set_xlabel(x_label)
