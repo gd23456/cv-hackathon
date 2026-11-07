@@ -35,6 +35,7 @@ class DeviceIn(BaseModel):
     memory_gb: float | None = Field(default=None, ge=0, le=4096)
     cores: int | None = Field(default=None, ge=0, le=4096)
     save_data: bool = False
+    profile: Literal["midrange", "lowend", "oldphone"] | None = None
 
 
 class GenerateIn(BaseModel):
@@ -183,7 +184,7 @@ def create_app(pipeline=None, manager: JobManager | None = None, limiter: RateLi
         category = check_prompt(clean.text)
         if category:
             return {"job_id": manager.add_refused(category).id}
-        device = Device(body.device.memory_gb, body.device.cores, body.device.save_data)
+        device = Device(body.device.memory_gb, body.device.cores, body.device.save_data, body.device.profile)
         try:
             job = manager.submit(clean, body.budget, device)
         except Busy:

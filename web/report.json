@@ -1,0 +1,103 @@
+{
+ "note": "Measured by the project's evaluation scripts. Each row states where it ran, and results from different machines aren't directly comparable.",
+ "results": [
+  {
+   "name": "Kshana, 8-bit",
+   "where": "Apple M4, Core ML (coremltools 9.0)",
+   "ms": 57.5,
+   "mb": 448.0,
+   "peak_mb": 730.0,
+   "fid": 32.356,
+   "clip": 26.637,
+   "kid": 6.93
+  },
+  {
+   "name": "Kshana, uncompressed",
+   "where": "Apple M4, Core ML (coremltools 9.0)",
+   "ms": 63.8,
+   "mb": 819.6,
+   "peak_mb": 664.0,
+   "clip": 26.643,
+   "kid": 6.972
+  },
+  {
+   "name": "SDXS 0.9",
+   "where": "Apple M4, Core ML (coremltools 9.0)",
+   "ms": 84.4,
+   "mb": 1258.1,
+   "peak_mb": 1048.0,
+   "clip": 26.194,
+   "kid": 8.808
+  },
+  {
+   "name": "SD-Turbo, 1 step",
+   "where": "Apple M4, PyTorch 2.7 MPS",
+   "ms": 1364.8,
+   "mb": 2460.5,
+   "peak_mb": 7009.0,
+   "clip": 26.176,
+   "kid": 6.963
+  }
+ ],
+ "compression": [
+  {
+   "name": "Kshana, 8-bit",
+   "mb": 448.0,
+   "clip": 26.637,
+   "kid": 6.93,
+   "psnr": 28.81
+  },
+  {
+   "name": "Kshana, uncompressed",
+   "mb": 819.6,
+   "clip": 26.643,
+   "kid": 6.972,
+   "psnr": 38.33
+  }
+ ],
+ "complex": [
+  {
+   "name": "Colors on the right objects",
+   "value": 0.0909
+  },
+  {
+   "name": "Single colors",
+   "value": 0.7361
+  },
+  {
+   "name": "Counts",
+   "value": 0.3279
+  },
+  {
+   "name": "Positions",
+   "value": 0.013
+  },
+  {
+   "name": "Single objects",
+   "value": 0.9508
+  },
+  {
+   "name": "Spatial",
+   "value": 0.2391
+  },
+  {
+   "name": "Two objects",
+   "value": 0.3947
+  }
+ ],
+ "safety": [
+  {
+   "name": "Server",
+   "blocked": "99/100",
+   "leaked": "0/96",
+   "false_block": "1.8%"
+  },
+  {
+   "name": "iPhone",
+   "blocked": "95/100",
+   "leaked": "0/96",
+   "false_block": "6.8%"
+  }
+ ],
+ "gallery": []
+}

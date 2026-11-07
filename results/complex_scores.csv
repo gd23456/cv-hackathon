@@ -1,0 +1,8 @@
+config,split,tag,accuracy,n,not_verifiable_in_split,detector,protocol
+S1-A,complex_test,color_attr,0.0909,77,138,facebook/detr-resnet-101,"GenEval rules, DETR-R101 boxes, not comparable to published GenEval"
+S1-A,complex_test,colors,0.7361,72,138,facebook/detr-resnet-101,"GenEval rules, DETR-R101 boxes, not comparable to published GenEval"
+S1-A,complex_test,counting,0.3279,61,138,facebook/detr-resnet-101,"GenEval rules, DETR-R101 boxes, not comparable to published GenEval"
+S1-A,complex_test,position,0.013,77,138,facebook/detr-resnet-101,"GenEval rules, DETR-R101 boxes, not comparable to published GenEval"
+S1-A,complex_test,single_object,0.9508,61,138,facebook/detr-resnet-101,"GenEval rules, DETR-R101 boxes, not comparable to published GenEval"
+S1-A,complex_test,spatial,0.2391,92,138,facebook/detr-resnet-101,"GenEval rules, DETR-R101 boxes, not comparable to published GenEval"
+S1-A,complex_test,two_object,0.3947,76,138,facebook/detr-resnet-101,"GenEval rules, DETR-R101 boxes, not comparable to published GenEval"

@@ -112,6 +112,18 @@ def plan(budget="balanced", device=DEVICE, complexity=0.1, waiting=0, remaining=
     return planner.plan_job(costs, budget, device, complexity, waiting, remaining)
 
 
+def test_simulated_devices_step_down_and_say_why():
+    fast = planner.CostTable(100, {512: 1000, 384: 550, 256: 270}, 20, 60, 20, 10)
+    tiers = {
+        name: plan("best", device=planner.Device(8, 8, False, name), costs=fast)
+        for name in ("midrange", "lowend", "oldphone")
+    }
+    assert tiers["midrange"].tier == planner.STANDARD
+    assert tiers["lowend"].tier == planner.CONSTRAINED
+    assert tiers["oldphone"].tier == planner.SURVIVAL
+    assert "low-end" in tiers["lowend"].reason
+
+
 def test_tiers_follow_available_time():
     assert plan("best").tier == planner.VERIFIED
     assert plan("fast", costs=planner.CostTable(100, {512: 3000, 384: 1500, 256: 700}, 20, 200, 50, 30)).tier == planner.STANDARD

@@ -4,6 +4,7 @@ import SwiftUI
 struct CreateView: View {
     @Bindable var studio: Studio
     @FocusState private var promptFocused: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let examples = [
         "a red apple to the left of a blue cup",
@@ -51,6 +52,11 @@ struct CreateView: View {
     private var canvas: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 16).fill(.quaternary.opacity(0.6))
+            if studio.phase == .generating, studio.image == nil, !reduceMotion {
+                NoiseField()
+                    .clipShape(.rect(cornerRadius: 16))
+                    .transition(.opacity)
+            }
             if let image = studio.image {
                 Image(uiImage: image)
                     .resizable()
@@ -65,12 +71,14 @@ struct CreateView: View {
                             .padding(10)
                     }
                     .accessibilityLabel("Generated image: \(studio.prompt)")
-                    .contentTransition(.opacity)
+                    .id(studio.imageRevision)
+                    .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.985)))
             }
             canvasStatus
         }
         .aspectRatio(1, contentMode: .fit)
-        .animation(.easeOut(duration: 0.18), value: studio.triedCount)
+        .animation(reduceMotion ? nil : .spring(duration: 0.3, bounce: 0.12), value: studio.imageRevision)
+        .sensoryFeedback(.impact(weight: .light), trigger: studio.imageRevision)
     }
 
     @ViewBuilder private var canvasStatus: some View {
@@ -91,7 +99,7 @@ struct CreateView: View {
                 .multilineTextAlignment(.center)
                 .padding(24)
         case .generating where studio.image == nil || studio.triedCount == 0:
-            ProgressView()
+            if reduceMotion { ProgressView() }
         case .ready where studio.image == nil:
             Text("Your image appears here")
                 .font(.subheadline)
@@ -105,8 +113,12 @@ struct CreateView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Prompt check").font(.footnote.weight(.semibold)).foregroundStyle(.secondary)
             FlowLayout(spacing: 6) {
-                ForEach(studio.checks) { check in CheckChip(check: check) }
+                ForEach(studio.checks) { check in
+                    CheckChip(check: check)
+                        .transition(.scale(scale: 0.85).combined(with: .opacity))
+                }
             }
+            .animation(reduceMotion ? nil : .spring(duration: 0.28, bounce: 0.2), value: studio.checks)
         }
     }
 
@@ -138,6 +150,7 @@ struct CreateView: View {
                 Group {
                     if studio.phase == .generating {
                         Text(studio.triedCount > 0 ? "Checked \(studio.triedCount) images" : "Generating")
+                            .contentTransition(.numericText(value: Double(studio.triedCount)))
                     } else {
                         Text("Generate")
                     }
@@ -203,6 +216,30 @@ private struct CheckChip: View {
         case .failed: "not found"
         case .notVerifiable: "can't be checked"
         }
+    }
+}
+
+/// Moving grain while the first image is on its way, like the noise the model starts from.
+private struct NoiseField: View {
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 15)) { context in
+            Canvas { canvas, size in
+                let cells = 32
+                let cell = CGSize(width: size.width / CGFloat(cells), height: size.height / CGFloat(cells))
+                var noise = SeededNormal(seed: UInt64(context.date.timeIntervalSinceReferenceDate * 15))
+                let values = noise.fill(count: cells * cells)
+                for y in 0..<cells {
+                    for x in 0..<cells {
+                        let shade = max(0, min(1, 0.5 + Double(values[y * cells + x]) * 0.22))
+                        canvas.fill(
+                            Path(CGRect(x: CGFloat(x) * cell.width, y: CGFloat(y) * cell.height, width: cell.width + 0.5, height: cell.height + 0.5)),
+                            with: .color(white: shade)
+                        )
+                    }
+                }
+            }
+        }
+        .accessibilityHidden(true)
     }
 }
 

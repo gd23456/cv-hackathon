@@ -16,6 +16,8 @@ final class Studio {
 
     private(set) var phase: Phase = .preparing("Starting")
     private(set) var image: UIImage?
+    /// Changes whenever a better image replaces the current one, to drive its transition.
+    private(set) var imageRevision = 0
     private(set) var exportImage: UIImage?
     private(set) var parsed: ParsedPrompt?
     private(set) var plan: PlanDecision?
@@ -155,6 +157,7 @@ final class Studio {
         guard canGenerate, let session else { return }
         generationTask?.cancel()
         phase = .generating
+        image = nil
         checks = []
         triedCount = 0
         summary = nil
@@ -181,6 +184,7 @@ final class Studio {
             latest = candidate
             if candidate.isBest {
                 image = candidate.image.cgImage.map(UIImage.init(cgImage:))
+                imageRevision += 1
                 checks = candidate.checks
             }
         case .finished(let summary):

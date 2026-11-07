@@ -18,6 +18,16 @@ class Device:
     memory_gb: float | None = None
     cores: int | None = None
     save_data: bool = False
+    profile: str | None = None  # a simulated slower device, from PROFILES
+
+
+# Simulated devices get a time budget relative to this machine's measured cost of one
+# full 512 px attempt, so the same tier appears on any host.
+PROFILES = {
+    "midrange": ("mid-range phone", 1.2),
+    "lowend": ("low-end phone", 0.8),
+    "oldphone": ("very old phone", 0.4),
+}
 
 
 @dataclass
@@ -100,6 +110,14 @@ def plan_job(
     full_512 = costs.attempt_ms(512, FULL)
     setup = costs.setup_ms(FULL)
 
+    if device.profile in PROFILES:
+        name, share = PROFILES[device.profile]
+        capped = setup + share * full_512
+        if capped < ms:
+            ms = capped
+            allowed = ms / 1000.0
+            notes.append(f"Simulating a {name}: {allowed:.1f} s for this image.")
+
     if 384 in costs.seed_ms:
         low_res = 384
     else:
@@ -127,7 +145,7 @@ def plan_job(
     expected = max(1, int((ms - costs.setup_ms(checks)) // attempt)) if ms > 0 else 1
 
     deliver = res
-    if device.save_data or (device.memory_gb is not None and device.memory_gb <= LOW_MEMORY_GB):
+    if device.save_data or device.profile in ("lowend", "oldphone") or (device.memory_gb is not None and device.memory_gb <= LOW_MEMORY_GB):
         deliver = min(res, SAVE_DATA_RES)
         if deliver < res:
             notes.append(f"Sent at {deliver} px to save data.")

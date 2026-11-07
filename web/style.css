@@ -394,3 +394,52 @@ textarea:focus-visible { outline: 3px solid var(--c); outline-offset: 0; }
   .reg .r-m, .reg .r-y { display: none; }
   .reg .r-c { color: var(--k); }
 }
+
+/* Measured results. Values use text inks; only chart marks carry colour. */
+.compare { grid-column: 1 / -1; padding: 32px 16px 48px; border-top: 2px solid var(--rule); min-width: 0; }
+.compare[hidden], #gallery-block[hidden] { display: none; }
+.compare-title { font-size: clamp(24px, 4vw, 36px); font-stretch: 85%; font-weight: 800; margin: 0 0 8px; }
+.compare-head { font-size: 16px; font-weight: 700; margin: 32px 0 10px; }
+.compare-note { color: var(--quiet); font-size: 14px; line-height: 1.5; margin: 6px 0; max-width: 68ch; }
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.table-wrap table { border-collapse: collapse; font-size: 14px; width: 100%; }
+#results-table table { min-width: 640px; }
+.compare-link { margin: 0 0 12px; font-size: 14px; font-weight: 600; }
+.compare-link a { color: inherit; }
+.compare-link[hidden] { display: none; }
+.table-wrap th, .table-wrap td { border-bottom: 1px solid var(--hair); padding: 8px 10px 8px 0; text-align: right; font-variant-numeric: tabular-nums; }
+.table-wrap th:first-child, .table-wrap td:first-child { text-align: left; }
+.table-wrap th { color: var(--quiet); font-weight: 600; font-size: 12px; border-bottom: 1px solid var(--rule); }
+.table-wrap tr.ours td { font-weight: 700; }
+.chart-wrap { position: relative; max-width: 760px; }
+.chart-wrap svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart-wrap .grid { stroke: var(--hair); stroke-width: 1; }
+.chart-wrap text { fill: var(--quiet); font-size: 12px; font-variant-numeric: tabular-nums; }
+.chart-wrap text.point-label { fill: var(--k); font-weight: 600; }
+.chart-wrap circle.ours { fill: var(--m); }
+.chart-wrap circle.other { fill: #0079a8; }
+.chart-wrap circle.dot { stroke: var(--stock); stroke-width: 2; }
+.chart-tip { position: absolute; pointer-events: none; background: var(--k); color: var(--stock); font-size: 12px; line-height: 1.4; padding: 6px 8px; max-width: 240px; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--quiet); margin: 0 0 6px; padding: 0; list-style: none; }
+.legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; }
+.gallery { display: grid; gap: 18px; }
+.gallery figure { margin: 0; }
+.gallery-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.gallery img { display: block; width: 100%; height: auto; }
+.gallery figcaption, .gallery-prompt { font-size: 12px; color: var(--quiet); margin: 4px 0; }
+.gallery-prompt { font-size: 14px; color: var(--k); }
+
+/* Hero: a corridor of images this model made. */
+.hero { position: relative; height: 66svh; min-height: 440px; overflow: hidden; background: var(--k); display: grid; place-items: center; padding: 16px; }
+.hero-stage { position: absolute; inset: 0; transform-style: preserve-3d; pointer-events: none; }
+.tunnel-card { position: absolute; left: 50%; top: 50%; margin: 0; opacity: 0; will-change: transform, opacity; }
+.tunnel-card img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; }
+.tunnel-card figcaption { background: var(--stock); color: var(--k); font-size: 11px; line-height: 1.25; padding: 5px 7px 7px; }
+.hero-copy { position: relative; z-index: 1; background: var(--y); color: var(--k); max-width: 440px; width: 100%; padding: 22px 22px 24px; }
+.hero-kicker { margin: 0 0 8px; font-size: 13px; font-weight: 700; }
+.hero-title { margin: 0; font-size: clamp(34px, 6vw, 54px); line-height: 1; font-weight: 800; font-stretch: 112%; }
+.hero-sub { margin: 12px 0 18px; font-size: 16px; line-height: 1.4; }
+.hero-go { display: inline-flex; align-items: center; min-height: 48px; padding: 0 22px; background: var(--k); color: var(--stock); font-weight: 700; text-decoration: none; touch-action: manipulation; }
+.hero-go:focus-visible { outline: 3px solid var(--m); outline-offset: 3px; }
+@media (min-width: 768px) { .hero { height: 74svh; } }
+@media (hover: hover) { .hero-go:hover { background: var(--m); } }

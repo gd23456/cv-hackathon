@@ -2,7 +2,7 @@
 """Export Marqo/nsfw-image-detection-384 (Apache-2.0) for the output safety gate.
 
 Input: 1x3x384x384 RGB float in 0...255. Output: probabilities [NSFW, SFW].
-    python optimize/export_nsfw.py --onnx server/models/nsfw.onnx --coreml data/coreml/nsfw_marqo.mlpackage
+    python optimize/export_nsfw.py --onnx server/models/nsfw.onnx --coreml data/coreml_safety/nsfw_marqo.mlpackage
 """
 from __future__ import annotations
 

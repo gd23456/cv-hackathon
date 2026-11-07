@@ -121,16 +121,30 @@ With verifier on iPhone: TODO: not measured yet
 | S0.9-FP16 | 26.194 [25.999, 26.388] | 84.4 | 1258.1 | 1 | Apple M4 |
 | B1 | 26.176 [25.983, 26.369] | 1364.8 | 2460.5 | 1 | Apple M4 |
 
-pareto_latency.png: TODO: not measured yet
+![pareto_latency.png](pareto_latency.png)
 
-pareto_size.png: TODO: not measured yet
+![pareto_size.png](pareto_size.png)
 
 e1.png: TODO: not measured yet
 
 ablation_classical.png: TODO: not measured yet
 
-E1: TODO: not measured yet
+E1, UNet calls per final image.
 
-Complex prompts: TODO: not measured yet
+| Split | C | Method | Prompts | CLIP ViT-L/14 | Count | Position | Colour | All checks | Engine |
+|---|---|---|---|---|---|---|---|---|---|
+| coco_1k | 1 | SD-Turbo C steps | 1000 | 26.176 | TODO: not measured yet | TODO: not measured yet | TODO: not measured yet | TODO: not measured yet | PyTorch 2.7 MPS, fp32 compute |
+
+Complex prompts, GenEval rules with DETR-R101 boxes. Not comparable with published GenEval numbers.
+
+| Config | Split | Tag | Accuracy | n |
+|---|---|---|---|---|
+| S1-A | complex_test | color_attr | 0.0909 | 77 |
+| S1-A | complex_test | colors | 0.7361 | 72 |
+| S1-A | complex_test | counting | 0.3279 | 61 |
+| S1-A | complex_test | position | 0.013 | 77 |
+| S1-A | complex_test | single_object | 0.9508 | 61 |
+| S1-A | complex_test | spatial | 0.2391 | 92 |
+| S1-A | complex_test | two_object | 0.3947 | 76 |
 
 Hand labels, about 100 images: TODO: not measured yet (team fills results/hand_labels/*.csv).

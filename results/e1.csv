@@ -1,0 +1,2 @@
+split,C_unet_calls,method,config,prompts,clip_l14,clip_ci95_lo,clip_ci95_hi,hardware,engine
+coco_1k,1,SD-Turbo C steps,B1,1000,26.176,25.988,26.365,Apple M4,"PyTorch 2.7 MPS, fp32 compute"

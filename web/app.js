@@ -273,6 +273,7 @@ function renderTimes(t) {
 function renderCleanup(ops) {
   if (!ops || !ops.length) return;
   el.cleanup.hidden = false;
+  el.cleanup.open = true;
   el.cleanupList.replaceChildren(
     ...ops.map((o) => make("li", {}, `${o.op.replace("_", " ")}: ${o.applied ? "ran" : "did not run"} `, make("span", { text: `(${o.note})` })))
   );
@@ -448,6 +449,7 @@ function deviceHints() {
     memory_gb: navigator.deviceMemory ?? null,
     cores: navigator.hardwareConcurrency ?? null,
     save_data: Boolean(c.saveData),
+    profile: document.querySelector('input[name="profile"]:checked')?.value || null,
   };
 }
 
