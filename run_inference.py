@@ -26,7 +26,10 @@ def main() -> None:
 
     if weights.missing(args.models):
         print(f"Downloading weights to {args.models}...")
-        weights.ensure(args.models)
+        try:
+            weights.ensure(args.models)
+        except OSError as error:
+            sys.exit(f"Couldn't download the model files ({error}). Build them instead: see Quickstart in README.md.")
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
     pipeline = Pipeline(args.models)

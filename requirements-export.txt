@@ -1,0 +1,9 @@
+# Only needed once, to build server/models from Hugging Face weights. The website and run_inference.py don't use these.
+torch==2.7.0
+openvino==2026.4.1
+onnx==1.23.2
+diffusers==0.42.1
+transformers==5.22.1
+safetensors
+accelerate
+timm

@@ -11,6 +11,7 @@ Tool: Claude Code (Anthropic, Claude Opus 5.5). This is a running factual log. C
 | Evaluation | Wrote and ran the metric, safety and benchmark scripts | TEAM: add any checks you did |
 | Figures | Generated the architecture diagram and result charts | Reviewed them |
 | Logo | Image generated with Google Gemini; Claude Code cropped it and made the app icon and web files | Chose it. TEAM: add how it was requested |
+| README | Wrote it from measured results and tested its quickstart on a fresh clone | TEAM: review it |
 | Website design | Rebuilt two 21st.dev components as plain HTML, CSS and JavaScript: scroll-cards (stacking cards) and glass-folder-cards (glass panels, folder shapes, marbled art method) | Chose both components and directed the design |
 | Report text | Built the report's Word layout from the organisers' template; supplied tables of measured numbers, figure captions, the failures table, and bullet-point notes for sections; fact-checked numbers | Wrote the report's sentences in their own words from those notes. TEAM: confirm this is true when you submit |
 

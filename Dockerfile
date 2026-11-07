@@ -7,12 +7,15 @@ FROM python:3.11-slim AS export
 WORKDIR /build
 # CPU torch first: accelerate would otherwise pull the much larger default build.
 RUN pip install --no-cache-dir torch==2.7.0 --index-url https://download.pytorch.org/whl/cpu
-RUN pip install --no-cache-dir openvino==2026.4.1 onnxruntime==1.31.1 onnx==1.23.2 numpy==2.2.6 "tokenizers>=0.21,<1" diffusers==0.42.1 transformers==5.22.1 safetensors accelerate
+RUN pip install --no-cache-dir openvino==2026.4.1 onnxruntime==1.31.1 onnx==1.23.2 numpy==2.2.6 "tokenizers>=0.21,<1" diffusers==0.42.1 transformers==5.22.1 safetensors accelerate timm
 RUN opt_in_out --opt_out
 COPY optimize/export_openvino.py optimize/export_openvino.py
 COPY kshana/__init__.py kshana/generator.py kshana/ort.py kshana/
 # Downloads the weights from Hugging Face and fails the build if the IR check errors.
 RUN PYTHONPATH=. python optimize/export_openvino.py --out /models --backends onnxruntime
+# The output safety gate needs this model, or every image would be refused.
+COPY optimize/export_nsfw.py optimize/export_nsfw.py
+RUN PYTHONPATH=. python optimize/export_nsfw.py --onnx /models/nsfw.onnx
 
 FROM python:3.11-slim
 RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 && rm -rf /var/lib/apt/lists/*
