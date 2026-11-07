@@ -146,6 +146,14 @@
         { x: cx, y: cy - 12, anchor: "middle", box: [cx - w / 2, cy - 23] },
         { x: cx, y: cy + 22, anchor: "middle", box: [cx - w / 2, cy + 11] },
       ];
+      // On a narrow chart a centred label can run off the side, so also try it pushed back inside.
+      const inside = Math.max(L + 2, Math.min(cx - w / 2, W - 2 - w));
+      spots.push(
+        { x: inside, y: cy - 12, anchor: "start", box: [inside, cy - 23] },
+        { x: inside, y: cy + 22, anchor: "start", box: [inside, cy + 11] },
+        { x: inside, y: cy - 28, anchor: "start", box: [inside, cy - 39] },
+        { x: inside, y: cy + 38, anchor: "start", box: [inside, cy + 27] },
+      );
       const fits = (s) => s.box[0] >= L && s.box[0] + w <= W - 2 && s.box[1] >= 0 && s.box[1] + h <= H - B
         && !placed.some((p) => s.box[0] < p[0] + p[2] && p[0] < s.box[0] + w && s.box[1] < p[1] + 20 && p[1] < s.box[1] + h);
       const spot = spots.find(fits) || spots[2];

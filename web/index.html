@@ -10,12 +10,20 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23fff200'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23141414' stroke-width='3'/%3E%3Cpath d='M16 2v28M2 16h28' stroke='%23141414' stroke-width='3'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="style.css">
 <script src="config.js"></script>
+<script src="folder.js" defer></script>
 <script src="app.js" defer></script>
 </head>
 <body>
 
+<div class="desk" aria-hidden="true"></div>
+
 <svg class="defs" width="0" height="0" aria-hidden="true" focusable="false">
   <defs>
+    <linearGradient id="gf-rim-g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.7"/>
+      <stop offset="0.35" stop-color="#fff" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0.1"/>
+    </linearGradient>
     <!-- One channel per plate. Multiplied back together they equal the original image. -->
     <filter id="sep-c" color-interpolation-filters="sRGB"><feColorMatrix values="1 0 0 0 0  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0"/></filter>
     <filter id="sep-m" color-interpolation-filters="sRGB"><feColorMatrix values="0 0 0 0 1  0 1 0 0 0  0 0 0 0 1  0 0 0 1 0"/></filter>
@@ -40,15 +48,16 @@
     </a>
   </div>
   <div class="hero-features">
-    <div class="hero-feature"><h3>Runs on the device</h3><p>The iPhone app makes images in airplane mode, in a 448 MB model.</p></div>
-    <div class="hero-feature"><h3>Checks its own work</h3><p>It verifies objects, colours and positions, and shows you what it found.</p></div>
-    <div class="hero-feature"><h3>Safety on every image</h3><p>Prompts are filtered, and each image is checked before it can appear.</p></div>
+    <div class="hero-feature gf"><h3>Runs on the device</h3><p>The iPhone app makes images in airplane mode, in a 448 MB model.</p></div>
+    <div class="hero-feature gf"><h3>Checks its own work</h3><p>It verifies objects, colours and positions, and shows you what it found.</p></div>
+    <div class="hero-feature gf"><h3>Safety on every image</h3><p>Prompts are filtered, and each image is checked before it can appear.</p></div>
   </div>
 </section>
 
 <main class="shell">
 
-  <section class="ticket" aria-label="Make an image"><div class="ticket-in">
+  <section class="ticket" aria-label="Make an image"><div class="ticket-in gf">
+    <span class="gf-tab" aria-hidden="true">Prompt</span>
     <h1 class="mark"><span class="mark-c" aria-hidden="true">Kshana</span><span class="mark-m" aria-hidden="true">Kshana</span><span class="mark-k">Kshana</span></h1>
     <p class="lede">Type a prompt. The image improves until time runs out, and the checks say what it got right.</p>
 
@@ -101,13 +110,19 @@
 
   <section class="proof" aria-label="Result">
     <p class="sr-only" id="live" aria-live="polite"></p>
-    <div class="frame" id="frame" data-phase="idle">
-      <div class="plate" id="plate"></div>
-      <div class="slate" id="slate"></div>
-      <svg class="strike" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><line x1="0" y1="100" x2="100" y2="0" vector-effect="non-scaling-stroke"/></svg>
+    <div class="folder" id="folder" data-tilt>
+      <div class="folder-back gf-shape" aria-hidden="true"></div>
+      <div class="frame" id="frame" data-phase="idle">
+        <div class="plate" id="plate"></div>
+        <div class="slate" id="slate"></div>
+        <svg class="strike" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><line x1="0" y1="100" x2="100" y2="0" vector-effect="non-scaling-stroke"/></svg>
+      </div>
+      <div class="folder-front gf" id="folder-front">
+        <span class="gf-tab" aria-hidden="true">Best image</span>
+        <div class="strip" id="strip" role="progressbar" aria-label="Time used" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
+        <p class="caption" id="caption"></p>
+      </div>
     </div>
-    <div class="strip" id="strip" role="progressbar" aria-label="Time used" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
-    <p class="caption" id="caption"></p>
 
     <div class="samples" id="samples" hidden>
       <h2 class="samples-head">The live server is unavailable</h2>
@@ -116,7 +131,8 @@
     </div>
   </section>
 
-  <section class="report" id="report" aria-label="Checks and timings">
+  <section class="report gf" id="report" aria-label="Checks and timings">
+    <span class="gf-tab" aria-hidden="true">Report</span>
     <div class="tier" id="tier" hidden>
       <span class="tier-plate" id="tier-name"></span>
       <p class="tier-reason" id="tier-reason"></p>

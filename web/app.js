@@ -28,7 +28,7 @@ const el = {
   form: $("form"), prompt: $("prompt"), promptError: $("prompt-error"),
   go: $("go"), budgetHint: $("budget-hint"),
   frame: $("frame"), plate: $("plate"), slate: $("slate"),
-  strip: $("strip"), caption: $("caption"), live: $("live"),
+  folderFront: $("folder-front"), strip: $("strip"), caption: $("caption"), live: $("live"),
   samples: $("samples"), samplesGrid: $("samples-grid"),
   tier: $("tier"), tierName: $("tier-name"), tierReason: $("tier-reason"), notes: $("notes"),
   summary: $("check-summary"), checks: $("checks"),
@@ -191,6 +191,37 @@ function showImage(best, alt) {
   el.plate.replaceChildren(plain);
 }
 
+// A better image drops into the folder, and the glass gives a little under it.
+function dropIntoFolder() {
+  if (reduced() || !el.frame.animate) return;
+  const ease = "cubic-bezier(.2, .8, .2, 1)";
+  el.frame.animate(
+    [
+      { translate: "0 -56px", rotate: "-3deg", opacity: 0 },
+      { opacity: 1, offset: 0.35 },
+      { translate: "0 14px", rotate: "0.8deg", offset: 0.72 },
+      { translate: "0 0", rotate: "0deg", opacity: 1 },
+    ],
+    { duration: 850, easing: ease }
+  );
+  el.folderFront.animate(
+    [{ scale: "1" }, { scale: "1.014 0.975", offset: 0.35 }, { scale: "0.997 1.006", offset: 0.7 }, { scale: "1" }],
+    { duration: 700, delay: 380, easing: ease }
+  );
+}
+
+// The attempt count rolls over instead of just changing.
+function setCaption(text) {
+  if (el.caption.textContent === text) return;
+  el.caption.textContent = text;
+  if (text && !reduced() && el.caption.animate) {
+    el.caption.animate(
+      [{ opacity: 0, translate: "0 7px", filter: "blur(3px)" }, { opacity: 1, translate: "0 0", filter: "blur(0)" }],
+      { duration: 500, easing: "cubic-bezier(.2, .8, .2, 1)" }
+    );
+  }
+}
+
 function clearResultPanels() {
   el.tier.hidden = true;
   el.notes.hidden = true;
@@ -336,12 +367,13 @@ function renderJob(job) {
     slate();
     announce("New image ready.");
     showImage(job.best, `Generated image for the prompt: ${state.prompt}`);
+    dropIntoFolder();
     if (state.startedAt && state.budgetS) addNotch((performance.now() - state.startedAt) / (state.budgetS * 1000));
   }
   if (job.best) {
     const verb = job.status === "done" ? "Best of" : "Best so far of";
     const tried = job.timings && job.timings.attempts ? job.timings.attempts : job.best.attempt;
-    el.caption.textContent = `${verb} ${tried} ${tried === 1 ? "attempt" : "attempts"} · ${job.best.width} px · AI-generated`;
+    setCaption(`${verb} ${tried} ${tried === 1 ? "attempt" : "attempts"} · ${job.best.width} px · AI-generated`);
   }
 
   switch (job.status) {

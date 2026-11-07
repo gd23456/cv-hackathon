@@ -77,9 +77,13 @@
     return row;
   };
 
-  const step = (index, card) => {
+  const step = (index, card, tab) => {
     const item = el("li", "how-step");
     item.style.setProperty("--i", String(index));
+    card.classList.add("gf-shape");
+    const label = el("span", "gf-tab", tab);
+    label.setAttribute("aria-hidden", "true");
+    card.prepend(label);
     item.append(card);
     return item;
   };
@@ -194,10 +198,14 @@
   }
 
   const cards = [promptCard(), ...STOPS.map(attemptCard), sheetCard(), benefitCard()];
-  cards.forEach((card, index) => stack.append(step(index, card)));
+  const tabs = ["Prompt", ...STOPS.map((stop) => `Image ${stop.n}`), "All tries", "Test set"];
+  stack.style.setProperty("--tab-slots", String(cards.length));
+  cards.forEach((card, index) => stack.append(step(index, card, tabs[index])));
   note.textContent = "One recorded run of this website's pipeline on an Apple M4, picked because it shows each step. 3 of our 11 recorded runs of this prompt ended with every check passing. These are saved images, not live results.";
 
   box.hidden = false;
+  // After unhiding, so each folder shape is measured at its real size.
+  if (window.Folder) cards.forEach(window.Folder.attach);
   const link = document.getElementById("how-link");
   if (link) link.hidden = false;
   if (location.hash === "#how") box.scrollIntoView();
