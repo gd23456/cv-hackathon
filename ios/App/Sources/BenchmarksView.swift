@@ -89,6 +89,8 @@ struct BenchmarksView: View {
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background { AuroraBackground(animated: studio.effectsAllowed) }
             .navigationTitle("Benchmarks")
             .task { rows = Self.loadRows() }
         }

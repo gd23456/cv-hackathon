@@ -65,6 +65,8 @@ struct InsideView: View {
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background { AuroraBackground(animated: studio.effectsAllowed) }
             .navigationTitle("Inside")
             .onAppear { studio.refreshDevice() }
         }

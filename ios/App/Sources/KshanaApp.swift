@@ -14,12 +14,16 @@ struct KshanaApp: App {
                 Tab("Benchmarks", systemImage: "chart.xyaxis.line", value: 2) { BenchmarksView(studio: studio) }
             }
             .tint(Color.kshanaAccent)
+            .preferredColorScheme(.dark)
             .task {
                 if CommandLine.arguments.contains("--plan") {
                     await studio.runPlanReport()
                     exit(0)
                 }
                 await studio.prepare()
+                if CommandLine.arguments.contains("--ui-test") {
+                    await studio.runInterfaceTest()
+                }
                 if CommandLine.arguments.contains("--bench") {
                     await studio.runCommandLineBenchmark()
                     exit(0)
@@ -37,5 +41,5 @@ struct KshanaApp: App {
 }
 
 extension Color {
-    static let kshanaAccent = Color(red: 0.84, green: 0.0, blue: 0.5)
+    static let kshanaAccent = Color(red: 1.0, green: 0.2, blue: 0.62)
 }

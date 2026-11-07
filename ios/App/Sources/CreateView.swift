@@ -13,55 +13,86 @@ struct CreateView: View {
         "a cat above a yellow book",
     ]
 
+    private var motion: Bool { !reduceMotion && studio.effectsAllowed }
+    private var working: Bool { studio.phase == .generating }
+
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    canvas
-                    if let notice = studio.notice {
-                        Label(notice, systemImage: "info.circle")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                    if !studio.checks.isEmpty { checklist }
-                    composer
-                    if studio.plan != nil || studio.summary != nil { runDetails }
+            ZStack {
+                AuroraBackground(energy: working ? 1 : 0, animated: motion)
+                if motion {
+                    WarpField(cards: studio.flyingCards)
+                        .offset(y: -150)
                 }
-                .padding()
-            }
-            .scrollDismissesKeyboard(.interactively)
-            .navigationTitle("Kshana")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Label(studio.acceleration?.isAccelerated == false ? "On this iPhone, CPU" : "On this iPhone", systemImage: "iphone.gen3")
-                        .labelStyle(.titleAndIcon)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                if let image = studio.exportImage {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        ShareLink(item: Image(uiImage: image), preview: SharePreview("AI-generated image", image: Image(uiImage: image)))
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 18) {
+                        header
+                        canvas
+                        if let notice = studio.notice {
+                            Label(notice, systemImage: "info.circle")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                        if !studio.checks.isEmpty { checklist }
+                        composer
+                        if studio.plan != nil || studio.summary != nil { runDetails }
                     }
+                    .padding()
+                }
+                .scrollDismissesKeyboard(.interactively)
+                if !reduceMotion {
+                    InkBurst(trigger: studio.burstCount)
                 }
             }
+            .toolbar(.hidden, for: .navigationBar)
             .sensoryFeedback(.success, trigger: studio.completedRuns)
+        }
+    }
+
+    private var header: some View {
+        HStack(alignment: .center) {
+            InkTitle(text: "Kshana", active: working && motion)
+            Spacer()
+            Label(studio.acceleration?.isAccelerated == false ? "CPU" : "On this iPhone", systemImage: "iphone.gen3")
+                .font(.caption2.weight(.semibold))
+                .padding(.horizontal, 9)
+                .padding(.vertical, 6)
+                .background(.ultraThinMaterial, in: .capsule)
+            if let image = studio.exportImage {
+                ShareLink(item: Image(uiImage: image), preview: SharePreview("AI-generated image", image: Image(uiImage: image))) {
+                    Image(systemName: "square.and.arrow.up")
+                        .padding(8)
+                        .background(.ultraThinMaterial, in: .circle)
+                }
+            }
         }
     }
 
     private var canvas: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 16).fill(.quaternary.opacity(0.6))
-            if studio.phase == .generating, studio.image == nil, !reduceMotion {
+            RoundedRectangle(cornerRadius: 20).fill(.ultraThinMaterial)
+            if working, studio.image == nil, motion {
                 NoiseField()
-                    .clipShape(.rect(cornerRadius: 16))
+                    .clipShape(.rect(cornerRadius: 20))
                     .transition(.opacity)
             }
             if let image = studio.image {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFit()
-                    .clipShape(.rect(cornerRadius: 16))
+                    .modifier(ImageArrival(revision: studio.imageRevision, enabled: motion))
+                    .clipShape(.rect(cornerRadius: 20))
+                    .overlay {
+                        if !studio.detections.isEmpty {
+                            DetectionOverlay(detections: studio.detections, revision: studio.imageRevision)
+                                .clipShape(.rect(cornerRadius: 20))
+                        }
+                    }
+                    .overlay {
+                        if working, motion {
+                            ScanLine().clipShape(.rect(cornerRadius: 20))
+                        }
+                    }
                     .overlay(alignment: .bottomLeading) {
                         Text("AI generated")
                             .font(.caption2.weight(.medium))
@@ -71,13 +102,12 @@ struct CreateView: View {
                             .padding(10)
                     }
                     .accessibilityLabel("Generated image: \(studio.prompt)")
-                    .id(studio.imageRevision)
-                    .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.985)))
             }
             canvasStatus
         }
         .aspectRatio(1, contentMode: .fit)
-        .animation(reduceMotion ? nil : .spring(duration: 0.3, bounce: 0.12), value: studio.imageRevision)
+        .shadow(color: Color(red: 0.93, green: 0, blue: 0.55).opacity(working ? 0.55 : 0.2), radius: working ? 34 : 18)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.5), value: working)
         .sensoryFeedback(.impact(weight: .light), trigger: studio.imageRevision)
     }
 
@@ -98,8 +128,8 @@ struct CreateView: View {
                 .font(.subheadline)
                 .multilineTextAlignment(.center)
                 .padding(24)
-        case .generating where studio.image == nil || studio.triedCount == 0:
-            if reduceMotion { ProgressView() }
+        case .generating where studio.image == nil:
+            if !motion { ProgressView() }
         case .ready where studio.image == nil:
             Text("Your image appears here")
                 .font(.subheadline)
@@ -129,8 +159,8 @@ struct CreateView: View {
                 .focused($promptFocused)
                 .submitLabel(.go)
                 .onSubmit(generate)
-                .padding(12)
-                .background(.quaternary.opacity(0.6), in: .rect(cornerRadius: 12))
+                .padding(14)
+                .background(.ultraThinMaterial, in: .rect(cornerRadius: 16))
             if studio.prompt.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
@@ -147,18 +177,20 @@ struct CreateView: View {
             }
             .pickerStyle(.segmented)
             Button(action: generate) {
-                Group {
-                    if studio.phase == .generating {
+                HStack(spacing: 8) {
+                    Image(systemName: "sparkles")
+                        .symbolEffect(.variableColor.iterative, isActive: working && !reduceMotion)
+                    if working {
                         Text(studio.triedCount > 0 ? "Checked \(studio.triedCount) images" : "Generating")
                             .contentTransition(.numericText(value: Double(studio.triedCount)))
+                            .animation(.snappy(duration: 0.15), value: studio.triedCount)
                     } else {
                         Text("Generate")
                     }
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 6)
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(InkButtonStyle(working: working && !reduceMotion))
+            .opacity(studio.canGenerate || working ? 1 : 0.5)
             .disabled(!studio.canGenerate)
         }
     }

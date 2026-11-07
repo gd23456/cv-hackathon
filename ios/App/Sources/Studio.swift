@@ -18,6 +18,9 @@ final class Studio {
     private(set) var image: UIImage?
     /// Changes whenever a better image replaces the current one, to drive its transition.
     private(set) var imageRevision = 0
+    private(set) var flyingCards: [FlyingCard] = []
+    private(set) var detections: [Detection] = []
+    private(set) var burstCount = 0
     private(set) var exportImage: UIImage?
     private(set) var parsed: ParsedPrompt?
     private(set) var plan: PlanDecision?
@@ -158,6 +161,8 @@ final class Studio {
         generationTask?.cancel()
         phase = .generating
         image = nil
+        detections = []
+        flyingCards = []
         checks = []
         triedCount = 0
         summary = nil
@@ -182,7 +187,9 @@ final class Studio {
         case .candidate(let candidate):
             triedCount = candidate.index + 1
             latest = candidate
+            launchCard(for: candidate)
             if candidate.isBest {
+                detections = candidate.detections
                 image = candidate.image.cgImage.map(UIImage.init(cgImage:))
                 imageRevision += 1
                 checks = candidate.checks
@@ -193,6 +200,10 @@ final class Studio {
             exportImage = makeExportImage(from: summary)
             checks = summary.best.checks
             completedRuns += 1
+            let verifiable = summary.best.checks.filter { $0.state != .notVerifiable }
+            if !verifiable.isEmpty, Double(verifiable.filter { $0.state == .passed }.count) / Double(verifiable.count) >= 0.8 {
+                burstCount += 1
+            }
             if summary.wasTruncated {
                 notice = "Only the first 77 tokens of a long description were used."
             }
@@ -202,6 +213,38 @@ final class Studio {
             notice = message
             phase = .ready
         }
+    }
+
+    /// Heavy animation is switched off when the phone is hot or saving power, because
+    /// the same resources make the images.
+    var effectsAllowed: Bool {
+        !device.lowPower && device.thermal != .serious && device.thermal != .critical
+    }
+
+    private func launchCard(for candidate: CandidateResult) {
+        guard effectsAllowed, let cgImage = candidate.thumbnail?.cgImage else { return }
+        let now = Date.now
+        flyingCards.removeAll { now.timeIntervalSince($0.born) > WarpField.life }
+        flyingCards.append(FlyingCard(
+            id: Int(truncatingIfNeeded: candidate.seed), image: UIImage(cgImage: cgImage), born: now,
+            angle: Double(candidate.index) * 2.399963, spin: candidate.index % 2 == 0 ? 70 : -70
+        ))
+    }
+
+    /// Runs one real search through the animated interface: `--ui-test`.
+    func runInterfaceTest() async {
+        prompt = "a red apple to the left of a blue cup on a wooden table"
+        budget = .best
+        generate()
+        await generationTask?.value
+        refreshDevice()
+        let s = summary
+        let line = String(
+            format: "ui test: tried %d in %.0f ms, first image %.0f ms, effects %@, thermal %d, footprint %.0f MB, peak %.0f MB\n",
+            s?.candidatesTried ?? -1, s?.elapsedMs ?? -1, s?.firstImageMs ?? -1, effectsAllowed ? "on" : "off",
+            device.thermal.rawValue, device.footprintMB, device.peakMB
+        )
+        try? line.write(to: URL.documentsDirectory.appending(path: "ui_test.txt"), atomically: true, encoding: .utf8)
     }
 
     /// Generation can't continue in the background, so stop cleanly.

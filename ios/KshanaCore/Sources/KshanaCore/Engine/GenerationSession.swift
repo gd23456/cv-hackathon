@@ -7,6 +7,9 @@ public struct CandidateResult: Sendable {
     public let score: Double
     public let checks: [CheckResult]
     public let alignment: Float?
+    public let detections: [Detection]
+    /// A small copy for animating many candidates cheaply.
+    public let thumbnail: RGBAImage?
     public let quality: QualityReport
     public let timings: GenerationTimings
     public let verifyMs: Double
@@ -121,11 +124,13 @@ public actor GenerationSession {
 
                 var checks: [CheckResult] = []
                 var alignment: Float?
+                var detections: [Detection] = []
                 var verifyMs = 0.0
                 if useVerifier, let verifier {
                     let verification = try await verifier.verify(generated.image, prompt: trimmed, parsed: parsed)
                     checks = verification.checks
                     alignment = verification.alignment
+                    detections = verification.detections
                     verifyMs = verification.detectMs + verification.alignMs
                 }
 
@@ -133,7 +138,8 @@ public actor GenerationSession {
                 let isBest = best.map { score > $0.score } ?? true
                 let candidate = CandidateResult(
                     index: index, seed: seed, image: generated.image, score: score, checks: checks,
-                    alignment: alignment, quality: quality, timings: generated.timings,
+                    alignment: alignment, detections: detections,
+                    thumbnail: try? ImageOps.resized(generated.image, width: 192, height: 192), quality: quality, timings: generated.timings,
                     verifyMs: verifyMs, isBest: isBest
                 )
                 if isBest { best = candidate }
