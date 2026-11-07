@@ -476,3 +476,13 @@ body { background: var(--stock); color: var(--k); }
 .chart-tip { background: #232931; color: var(--k); border: 1px solid var(--hair); }
 .compare { border-top: 1px solid var(--hair); }
 .table-wrap th { border-bottom-color: var(--rule); }
+.budget-opt input:checked + span { background: #2d343d; color: #f2f4f7; }
+.budget-opt input:checked:active + span { background: #39414c; }
+.budget-opt span { background: #12161b; color: var(--k); }
+.budget-row { border-color: var(--hair); border-radius: 10px; overflow: hidden; }
+#prompt { background: #12161b; color: var(--k); border-color: var(--hair); border-radius: 12px; }
+.chart-wrap circle.ours { fill: #3b7fe0; }
+.chart-wrap circle.other { fill: #b87b1e; }
+.mark span.mark-c, .mark span.mark-m { display: none; }
+.mark span.mark-k { color: var(--k); }
+.frame { background-image: none; background-color: #171b20; border: 1px solid var(--hair); border-radius: 16px; overflow: hidden; }
