@@ -10,6 +10,6 @@ Tool: Claude Code (Anthropic, Claude Opus 5.5). This is a running factual log. C
 | Debugging | Traced the Neural Engine SiLU error and proposed the fix; found the Core ML fallback and chart crash | Reported failures seen on the device |
 | Evaluation | Wrote and ran the metric, safety and benchmark scripts | TEAM: add any checks you did |
 | Figures | Generated the architecture diagram and result charts | Reviewed them |
-| Report text | None by request: AI supplied numbers and fact-checks only | TEAM: confirm this is true when you submit |
+| Report text | Built the report's Word layout from the organisers' template; supplied tables of measured numbers, figure captions, the failures table, and bullet-point notes for sections; fact-checked numbers | Wrote the report's sentences in their own words from those notes. TEAM: confirm this is true when you submit |
 
 Open question: the organisers' policy names AI assistance for system design. TEAM: record their reply about code here.
