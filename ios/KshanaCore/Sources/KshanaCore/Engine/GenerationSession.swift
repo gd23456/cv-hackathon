@@ -29,6 +29,13 @@ public struct SessionSummary: Sendable {
     public let wasTruncated: Bool
 }
 
+public enum QuickOutcome: Sendable {
+    case image(RGBAImage, milliseconds: Double)
+    case blocked
+    case empty
+    case failed
+}
+
 public enum SessionEvent: Sendable {
     case planned(ParsedPrompt, PlanDecision)
     case candidate(CandidateResult)
@@ -50,6 +57,30 @@ public actor GenerationSession {
         self.generator = generator
         self.verifier = verifier
         self.safety = safety
+    }
+
+    /// One fast image, for live typing and exploring. It skips the search and checks,
+    /// but never the prompt filter or the safety gate.
+    public func quickImage(prompt: String, seed: UInt64, towards next: UInt64? = nil, blend: Float = 0) async -> QuickOutcome {
+        let trimmed = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return .empty }
+        guard !PromptSafety.isUnreadable(trimmed), !PromptSafety.isBlocked(trimmed), await safety.isLoaded else { return .blocked }
+        let text = PromptParser.rewordings(of: trimmed, parsed: PromptParser.parse(trimmed)).first ?? trimmed
+
+        var noise: [Float]?
+        if let next {
+            let count = Generator.latentChannels * Generator.latentSize * Generator.latentSize
+            var a = SeededNormal(seed: seed), b = SeededNormal(seed: next)
+            noise = SeededNormal.slerp(a.fill(count: count), b.fill(count: count), t: blend)
+        }
+        do {
+            var watch = Stopwatch()
+            let generated = try await generator.generate(prompt: text, seed: seed, noise: noise)
+            guard await safety.allows(generated.image) else { return .blocked }
+            return .image(generated.image, milliseconds: watch.lap())
+        } catch {
+            return .failed
+        }
     }
 
     public nonisolated func run(prompt: String, budget: Budget, baseSeed: UInt64) -> AsyncStream<SessionEvent> {

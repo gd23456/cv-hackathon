@@ -65,3 +65,13 @@ import Testing
     }
     #expect(throws: GeneratorError.self) { try Generator.rgba(from: array) }
 }
+
+@Test func `blending noise keeps it at full strength and hits both ends`() {
+    var a = SeededNormal(seed: 1), b = SeededNormal(seed: 2)
+    let x = a.fill(count: 16384), y = b.fill(count: 16384)
+    func length(_ v: [Float]) -> Float { v.reduce(0) { $0 + $1 * $1 }.squareRoot() }
+    let middle = SeededNormal.slerp(x, y, t: 0.5)
+    #expect(abs(length(middle) - length(x)) / length(x) < 0.02)
+    #expect(zip(SeededNormal.slerp(x, y, t: 0), x).allSatisfy { abs($0 - $1) < 1e-3 })
+    #expect(zip(SeededNormal.slerp(x, y, t: 1), y).allSatisfy { abs($0 - $1) < 1e-3 })
+}

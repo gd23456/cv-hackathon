@@ -37,4 +37,21 @@ public struct SeededNormal: Sendable {
         }
         return out
     }
+
+    /// Spherical interpolation between two noise vectors. Unlike a straight blend it keeps
+    /// the noise at the strength the model expects, so every point gives a real image.
+    public static func slerp(_ a: [Float], _ b: [Float], t: Float) -> [Float] {
+        var dot: Float = 0, normA: Float = 0, normB: Float = 0
+        for i in a.indices {
+            dot += a[i] * b[i]
+            normA += a[i] * a[i]
+            normB += b[i] * b[i]
+        }
+        let cosine = max(-1, min(1, dot / (normA.squareRoot() * normB.squareRoot())))
+        let theta = acos(cosine)
+        guard theta > 1e-4 else { return a }
+        let wa = sin((1 - t) * theta) / sin(theta)
+        let wb = sin(t * theta) / sin(theta)
+        return a.indices.map { wa * a[$0] + wb * b[$0] }
+    }
 }

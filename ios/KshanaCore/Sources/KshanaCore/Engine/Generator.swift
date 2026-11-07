@@ -157,14 +157,14 @@ public actor Generator {
         return TokenizedPrompt(ids: kept.map(Int32.init), tokenCount: tokenIDs.count)
     }
 
-    public func generate(prompt: String, seed: UInt64) throws -> GeneratedCandidate {
+    public func generate(prompt: String, seed: UInt64, noise customNoise: [Float]? = nil) throws -> GeneratedCandidate {
         guard let unet, let decoder else { throw GeneratorError.notLoaded }
         guard !prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw GeneratorError.emptyPrompt }
 
         let (embedding, textMs) = try embedding(for: prompt)
 
         var noise = SeededNormal(seed: seed)
-        let z = noise.fill(count: Self.latentChannels * Self.latentSize * Self.latentSize)
+        let z = customNoise ?? noise.fill(count: Self.latentChannels * Self.latentSize * Self.latentSize)
         let sample = try Self.latentArray(z)
 
         var watch = Stopwatch()

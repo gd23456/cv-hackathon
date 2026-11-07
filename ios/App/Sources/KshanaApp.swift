@@ -21,6 +21,9 @@ struct KshanaApp: App {
                     exit(0)
                 }
                 await studio.prepare()
+                if CommandLine.arguments.contains("--live-test") {
+                    await studio.runLiveTest()
+                }
                 if CommandLine.arguments.contains("--ui-test") {
                     await studio.runInterfaceTest()
                 }

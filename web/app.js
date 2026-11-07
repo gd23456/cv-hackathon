@@ -176,38 +176,19 @@ function slate(...nodes) {
 }
 
 function registerMark() {
-  const svg = (cls) => {
-    const s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    s.setAttribute("class", cls);
-    s.setAttribute("aria-hidden", "true");
-    const u = document.createElementNS("http://www.w3.org/2000/svg", "use");
-    u.setAttribute("href", "#i-reg");
-    s.append(u);
-    return s;
-  };
-  return make("div", { class: "reg" }, svg("r-c"), svg("r-m"), svg("r-y"));
+  return make(
+    "div", { class: "ig" },
+    make("div", { class: "igCanvas", role: "img", "aria-label": "Generating image" },
+      make("span", { class: "igDots" }), make("span", { class: "igGlow" }), make("span", { class: "igRes", text: "512 × 512" })),
+    make("span", { class: "igLabel", text: "Generating image" }),
+    make("span", { class: "igPrompt", text: `“${el.prompt.value.trim()}”` }),
+  );
 }
 
 function showImage(best, alt) {
   const src = `data:${best.mime || "image/jpeg"};base64,${best.image_b64}`;
   const plain = make("img", { src, alt, width: String(best.width), height: String(best.height) });
-  if (reduced()) {
-    el.plate.replaceChildren(plain);
-    return;
-  }
-  // The new image comes in as three separated plates and settles into register.
-  const plates = ["c", "m", "y"].map((c) => make("img", { src, alt: "", class: `sep sep-${c}` }));
-  let settled = false;
-  const finish = () => {
-    if (settled) return;
-    settled = true;
-    el.plate.classList.remove("sep-bg");
-    el.plate.replaceChildren(plain);
-  };
-  plates[0].addEventListener("animationend", finish, { once: true });
-  setTimeout(finish, 900);
-  el.plate.classList.add("sep-bg");
-  el.plate.replaceChildren(...plates);
+  el.plate.replaceChildren(plain);
 }
 
 function clearResultPanels() {

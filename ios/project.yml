@@ -36,6 +36,8 @@ targets:
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
         INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: Save generated images to your photo library.
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: Lets you speak a prompt. Audio stays on this iPhone.
+        INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: Turns your speech into a prompt, on this iPhone.
         TARGETED_DEVICE_FAMILY: "1"
         CODE_SIGN_STYLE: Automatic
         MARKETING_VERSION: "1.0"

@@ -8,7 +8,6 @@
 <meta name="theme-color" content="#fff200">
 <meta name="color-scheme" content="light">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23fff200'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23141414' stroke-width='3'/%3E%3Cpath d='M16 2v28M2 16h28' stroke='%23141414' stroke-width='3'/%3E%3C/svg%3E">
-<link rel="preload" href="fonts/archivo.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="style.css">
 <script src="config.js"></script>
 <script src="app.js" defer></script>
@@ -30,12 +29,20 @@
 </svg>
 
 <section class="hero" id="hero" aria-label="Introduction">
-  <div class="hero-stage" id="hero-stage" aria-hidden="true"></div>
+  <div class="hero-stage" id="hero-stage" aria-hidden="true">
+    <div class="hero-stat"><strong>88 ms</strong><span>per image on iPhone 15</span></div>
+  </div>
   <div class="hero-copy">
-    <p class="hero-kicker">One-step text to image</p>
-    <p class="hero-title">An image in an instant.</p>
-    <p class="hero-sub">About 90 ms per image on an iPhone 15, with no network. Then it checks its own work. This page runs the same model on a server.</p>
-    <a class="hero-go" id="hero-go" href="#prompt">Make an image</a>
+    <h2 class="hero-title">Text to image, in an instant.</h2>
+    <p class="hero-sub">A one-step generator small enough for a phone, that checks its own work and tries again until it finds a better image.</p>
+    <a class="hero-go" id="hero-go" href="#prompt">Make an image
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5"/></svg>
+    </a>
+  </div>
+  <div class="hero-features">
+    <div class="hero-feature"><h3>Runs on the device</h3><p>The iPhone app makes images in airplane mode, in a 448 MB model.</p></div>
+    <div class="hero-feature"><h3>Checks its own work</h3><p>It verifies objects, colours and positions, and shows you what it found.</p></div>
+    <div class="hero-feature"><h3>Safety on every image</h3><p>Prompts are filtered, and each image is checked before it can appear.</p></div>
   </div>
 </section>
 
@@ -59,9 +66,10 @@
       <p class="field-error" id="prompt-error" role="alert" hidden></p>
 
       <div class="examples" role="group" aria-label="Example prompts">
-        <button type="button" class="example" data-prompt="a red apple to the left of a blue cup on a wooden table">Apple and cup</button>
-        <button type="button" class="example" data-prompt="two dogs on a green sofa">Two dogs</button>
-        <button type="button" class="example" data-prompt="a small cabin beside a lake at sunset, mountains in the background">Cabin at sunset</button>
+        <button type="button" class="example" data-prompt="a red apple to the left of a blue cup">Apple and cup</button>
+        <button type="button" class="example" data-prompt="a lighthouse on a cliff at sunset">Lighthouse</button>
+        <button type="button" class="example" data-prompt="a golden retriever puppy on green grass">Puppy</button>
+        <button type="button" class="example" data-prompt="a bowl of ramen on a dark table">Ramen</button>
       </div>
 
       <fieldset class="budget">

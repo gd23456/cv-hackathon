@@ -39,6 +39,16 @@ final class Studio {
 
     var prompt = ""
     var budget: Budget = .auto
+    var liveMode = false {
+        didSet {
+            quickNotice = nil
+            if liveMode { promptDidChange() } else { pendingQuick = nil }
+        }
+    }
+    private(set) var quickNotice: String?
+    private(set) var quickMs: Double?
+    private(set) var quickCount = 0
+    private(set) var isExploring = false
 
     private let logger = Logger(subsystem: "com.gourabdash.kshana", category: "studio")
     private let generator: Generator?
@@ -47,6 +57,11 @@ final class Studio {
     private let session: GenerationSession?
     private let textOnCPU = CommandLine.arguments.contains("--text-cpu")
     private var generationTask: Task<Void, Never>?
+    private enum QuickJob { case typing, explore(Double) }
+    private var pendingQuick: QuickJob?
+    private var quickRunning = false
+    private var liveSeed = UInt64(Date.now.timeIntervalSince1970)
+    private var exploreSeed: UInt64 = 1
     private var nextSeed = UInt64(Date.now.timeIntervalSince1970)
 
     init() {
@@ -158,6 +173,8 @@ final class Studio {
     func generate() {
         guard canGenerate, let session else { return }
         generationTask?.cancel()
+        pendingQuick = nil
+        isExploring = false
         phase = .generating
         image = nil
         detections = []
@@ -209,6 +226,97 @@ final class Studio {
             notice = message
             phase = .ready
         }
+    }
+
+    // MARK: - Live typing and exploring
+
+    func promptDidChange() {
+        guard liveMode else { return }
+        requestQuick(.typing)
+    }
+
+    /// Drag distance moves through the noise between neighbouring seeds.
+    func explore(position: Double) {
+        if !isExploring {
+            isExploring = true
+            exploreSeed = summary?.best.seed ?? liveSeed
+            summary = nil
+            checks = []
+            detections = []
+            plan = nil
+        }
+        requestQuick(.explore(position))
+    }
+
+    func endExploring() {
+        isExploring = false
+    }
+
+    private func requestQuick(_ job: QuickJob) {
+        guard phase == .ready else { return }
+        refreshDevice()
+        guard effectsAllowed else {
+            quickNotice = "Paused: this iPhone is hot or in Low Power Mode."
+            return
+        }
+        quickNotice = nil
+        pendingQuick = job
+        guard !quickRunning else { return }
+        quickRunning = true
+        Task { await drainQuick() }
+    }
+
+    /// Only the newest request matters: anything older is skipped, so it never lags behind typing.
+    private func drainQuick() async {
+        defer { quickRunning = false }
+        guard let session else { return }
+        while let job = pendingQuick {
+            pendingQuick = nil
+            guard phase == .ready else { return }
+            let outcome: QuickOutcome
+            switch job {
+            case .typing:
+                outcome = await session.quickImage(prompt: prompt, seed: liveSeed)
+            case .explore(let position):
+                let step = position.rounded(.down)
+                let base = exploreSeed &+ UInt64(bitPattern: Int64(step))
+                outcome = await session.quickImage(prompt: prompt, seed: base, towards: base &+ 1, blend: Float(position - step))
+            }
+            switch outcome {
+            case .image(let result, let milliseconds):
+                image = result.cgImage.map(UIImage.init(cgImage:))
+                summary = nil
+                exportImage = nil
+                quickMs = milliseconds
+                quickCount += 1
+                notice = nil
+            case .blocked:
+                image = nil
+                notice = "This can't be shown. Try describing something different."
+            case .empty:
+                image = nil
+            case .failed:
+                quickNotice = "Live mode hit an error. Press Generate instead."
+            }
+        }
+    }
+
+    /// Types a prompt letter by letter at a human pace, and records the rate: `--live-test`.
+    func runLiveTest() async {
+        liveMode = true
+        let text = "a golden retriever puppy on green grass"
+        let start = ContinuousClock.now
+        for count in 1...text.count {
+            prompt = String(text.prefix(count))
+            promptDidChange()
+            try? await Task.sleep(for: .milliseconds(90))
+        }
+        try? await Task.sleep(for: .milliseconds(300))
+        let seconds = Double(start.duration(to: .now).components.seconds)
+        refreshDevice()
+        let line = String(format: "live test: %d images in %.0f s of typing, last image %.0f ms, thermal %d, footprint %.0f MB\n", quickCount, seconds, quickMs ?? -1, device.thermal.rawValue, device.footprintMB)
+        try? line.write(to: URL.documentsDirectory.appending(path: "live_test.txt"), atomically: true, encoding: .utf8)
+        try? image.flatMap { $0.pngData() }?.write(to: URL.documentsDirectory.appending(path: "live_test.png"))
     }
 
     /// Heavy animation is switched off when the phone is hot or saving power, because

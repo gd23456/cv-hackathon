@@ -76,27 +76,75 @@ struct ScanLine: View {
     }
 }
 
-/// Moving grain while the first image is on its way, like the noise the model starts from.
-struct NoiseField: View {
+/// The same animation as the website while the first image is on its way:
+/// a dot field lit by two drifting pools of light.
+struct GeneratingView: View {
+    let prompt: String
+    let animated: Bool
+    @State private var shine = false
+
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 15)) { context in
-            Canvas { canvas, size in
-                let cells = 32
-                let cell = CGSize(width: size.width / CGFloat(cells), height: size.height / CGFloat(cells))
-                var noise = SeededNormal(seed: UInt64(context.date.timeIntervalSinceReferenceDate * 15))
-                let values = noise.fill(count: cells * cells)
-                for y in 0..<cells {
-                    for x in 0..<cells {
-                        let shade = max(0, min(1, 0.32 + Double(values[y * cells + x]) * 0.14))
-                        canvas.fill(
-                            Path(CGRect(x: CGFloat(x) * cell.width, y: CGFloat(y) * cell.height, width: cell.width + 0.5, height: cell.height + 0.5)),
-                            with: .color(white: shade)
-                        )
+        VStack(spacing: 12) {
+            ZStack(alignment: .bottomTrailing) {
+                TimelineView(.animation(minimumInterval: 1.0 / 24, paused: !animated)) { context in
+                    Canvas { canvas, size in
+                        let t = context.date.timeIntervalSinceReferenceDate
+                        let centres = [
+                            CGPoint(x: size.width * (0.5 + 0.34 * cos(t * 0.7)), y: size.height * (0.5 + 0.3 * sin(t * 0.9))),
+                            CGPoint(x: size.width * (0.5 + 0.3 * sin(t * 0.5 + 2)), y: size.height * (0.5 + 0.34 * cos(t * 0.6 + 1))),
+                        ]
+                        let reach = size.width * 0.34
+                        let spacing: CGFloat = 11
+                        var y = spacing / 2
+                        while y < size.height {
+                            var x = spacing / 2
+                            while x < size.width {
+                                let light = centres.reduce(0.0) { total, c in
+                                    let d = hypot(x - c.x, y - c.y) / reach
+                                    return total + exp(-Double(d * d) * 1.6)
+                                }
+                                let dot = CGRect(x: x - 1.2, y: y - 1.2, width: 2.4, height: 2.4)
+                                canvas.fill(Path(ellipseIn: dot), with: .color(Color(red: 0.81, green: 0.88, blue: 1).opacity(min(1, 0.08 + light))))
+                                x += spacing
+                            }
+                            y += spacing
+                        }
                     }
                 }
+                .background(Color.kshanaBackground)
+                Text("512 × 512")
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(.black.opacity(0.55), in: .rect(cornerRadius: 6))
+                    .padding(8)
             }
+            .clipShape(.rect(cornerRadius: 14))
+            .frame(maxWidth: 240, maxHeight: 240)
+            Text("Generating image")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .overlay {
+                    GeometryReader { proxy in
+                        LinearGradient(colors: [.clear, .white, .clear], startPoint: .leading, endPoint: .trailing)
+                            .frame(width: proxy.size.width * 0.6)
+                            .offset(x: shine ? proxy.size.width : -proxy.size.width * 0.6)
+                    }
+                    .mask { Text("Generating image").font(.subheadline.weight(.semibold)) }
+                }
+            Text("\u{201C}\(prompt)\u{201D}")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
         }
-        .accessibilityHidden(true)
+        .padding(18)
+        .onAppear {
+            guard animated else { return }
+            withAnimation(.linear(duration: 1.6).repeatForever(autoreverses: false)) { shine = true }
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 
