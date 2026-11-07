@@ -6,7 +6,7 @@ export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Develope
 cd "$(dirname "$0")/.."
 DERIVED="${DERIVED_DATA:-$(mktemp -d)}"
 BUNDLE=com.gourabdash.kshana
-DEVICE="${DEVICE_ID:-$(xcrun devicectl list devices 2>/dev/null | grep -Eo '[0-9A-F]{8}-[0-9A-F]{16}' | head -1)}"
+DEVICE="${DEVICE_ID:-$(xcrun devicectl list devices 2>/dev/null | grep iPhone | grep -v -i simulator | grep -E 'connected|available' | grep -Eo '[0-9A-F]{8}-[0-9A-F]{16}' | head -1)}"
 TEAM="${TEAM_ID:-$(defaults read com.apple.dt.Xcode IDEProvisioningTeamByIdentifier | grep teamID | head -1 | sed -E 's/.*= "?([A-Z0-9]+)"?;/\1/')}"
 [ -n "$DEVICE" ] || { echo "No iPhone found" >&2; exit 1; }
 [ -n "$TEAM" ] || { echo "Sign in under Xcode > Settings > Accounts first" >&2; exit 1; }
