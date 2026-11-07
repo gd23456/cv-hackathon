@@ -5,20 +5,116 @@ extension Color {
     static let kshanaBackground = Color(red: 0.05, green: 0.06, blue: 0.075)
     static let kshanaPanel = Color(red: 0.09, green: 0.105, blue: 0.125)
     static let kshanaAccent = Color(red: 0.31, green: 0.58, blue: 1.0)
+    /// Inset controls on glass, the same as the website's.
+    static let kshanaWell = Color.black.opacity(0.36)
+    static let kshanaKey = LinearGradient(
+        colors: [Color(red: 0.56, green: 0.73, blue: 1), .kshanaAccent, Color(red: 0.18, green: 0.44, blue: 0.85)],
+        startPoint: .top, endPoint: .bottom
+    )
 }
 
-/// Graphite with a faint blue light at the top. Deliberately still.
-struct GraphiteBackground: View {
+/// The website's marbled desk, with its dark wash and dot grid baked in. Deliberately still.
+struct DeskBackground: View {
     var body: some View {
-        ZStack {
-            Color.kshanaBackground
-            RadialGradient(
-                colors: [Color.kshanaAccent.opacity(0.12), .clear],
-                center: .top, startRadius: 0, endRadius: 420
-            )
+        Color.kshanaBackground
+            .overlay { Image(decorative: "Desk").resizable().scaledToFill() }
+            .clipped()
+            .ignoresSafeArea()
+            .accessibilityHidden(true)
+    }
+}
+
+/// A folder outline with a tab on one side, the same curve as the website's folder.js.
+nonisolated struct FolderShape: Shape {
+    var tabWidth: CGFloat
+    var tabHeight: CGFloat
+    var radius: CGFloat = 20
+    var tabOnRight = false
+
+    func path(in rect: CGRect) -> Path {
+        let w = rect.width, h = rect.height, r = radius, tab = tabHeight
+        let shoulder = tab * 1.35
+        var path = Path()
+        if tabOnRight {
+            let x = w - tabWidth
+            path.move(to: CGPoint(x: 0, y: tab + r))
+            path.addArc(tangent1End: CGPoint(x: 0, y: tab), tangent2End: CGPoint(x: r, y: tab), radius: r)
+            path.addLine(to: CGPoint(x: x, y: tab))
+            path.addCurve(to: CGPoint(x: x + shoulder, y: 0), control1: CGPoint(x: x + shoulder / 2, y: tab), control2: CGPoint(x: x + shoulder / 2, y: 0))
+            path.addArc(tangent1End: CGPoint(x: w, y: 0), tangent2End: CGPoint(x: w, y: r), radius: r)
+        } else {
+            let end = tabWidth
+            path.move(to: CGPoint(x: 0, y: r))
+            path.addArc(tangent1End: .zero, tangent2End: CGPoint(x: r, y: 0), radius: r)
+            path.addLine(to: CGPoint(x: end - shoulder, y: 0))
+            path.addCurve(to: CGPoint(x: end, y: tab), control1: CGPoint(x: end - shoulder / 2, y: 0), control2: CGPoint(x: end - shoulder / 2, y: tab))
+            path.addArc(tangent1End: CGPoint(x: w, y: tab), tangent2End: CGPoint(x: w, y: tab + r), radius: r)
         }
-        .ignoresSafeArea()
-        .accessibilityHidden(true)
+        path.addArc(tangent1End: CGPoint(x: w, y: h), tangent2End: CGPoint(x: w - r, y: h), radius: r)
+        path.addArc(tangent1End: CGPoint(x: 0, y: h), tangent2End: CGPoint(x: 0, y: h - r), radius: r)
+        path.closeSubpath()
+        return path.offsetBy(dx: rect.minX, dy: rect.minY)
+    }
+}
+
+extension View {
+    /// Smoked glass cut to a shape, with a bright rim along the top.
+    func glass(in shape: some Shape) -> some View {
+        background {
+            shape.fill(.ultraThinMaterial).overlay { shape.fill(.black.opacity(0.26)) }
+        }
+        .overlay {
+            shape.stroke(
+                LinearGradient(colors: [.white.opacity(0.5), .white.opacity(0.16), .white.opacity(0.08)], startPoint: .top, endPoint: .bottom),
+                lineWidth: 1
+            )
+            .allowsHitTesting(false)
+        }
+    }
+
+    /// A folder's label, sitting in its tab.
+    func folderTab(_ title: String, height: CGFloat) -> some View {
+        overlay(alignment: .topLeading) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .frame(height: height)
+                .padding(.leading, 18)
+                .accessibilityHidden(true)
+        }
+    }
+
+    /// Frosted rows for the lists on the Inside and Benchmarks tabs.
+    func glassRows() -> some View {
+        listRowBackground(Rectangle().fill(.ultraThinMaterial))
+    }
+}
+
+/// A better image drops into the folder, as on the website.
+struct DropIn: ViewModifier {
+    let revision: Int
+    let enabled: Bool
+
+    nonisolated struct Pose: Sendable {
+        var y: CGFloat = 0
+        var angle: Double = 0
+    }
+
+    func body(content: Content) -> some View {
+        content.keyframeAnimator(initialValue: Pose(), trigger: revision) { [enabled] view, pose in
+            view
+                .offset(y: enabled ? pose.y : 0)
+                .rotationEffect(.degrees(enabled ? pose.angle : 0))
+        } keyframes: { _ in
+            KeyframeTrack(\.y) {
+                MoveKeyframe(-22)
+                CubicKeyframe(6, duration: 0.24)
+                CubicKeyframe(0, duration: 0.16)
+            }
+            KeyframeTrack(\.angle) {
+                MoveKeyframe(-1.6)
+                CubicKeyframe(0, duration: 0.4)
+            }
+        }
     }
 }
 

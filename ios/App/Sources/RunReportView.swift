@@ -18,9 +18,11 @@ struct RunReportView: View {
             if let summary = studio.summary { steps(summary) }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .background(Color.kshanaPanel, in: .rect(cornerRadius: 16))
-        .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(.white.opacity(0.08)))
+        .padding(.horizontal, 16)
+        .padding(.top, 36)
+        .padding(.bottom, 16)
+        .glass(in: FolderShape(tabWidth: 100, tabHeight: 24))
+        .folderTab("Report", height: 24)
     }
 
     private var headline: String? {

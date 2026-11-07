@@ -49,6 +49,7 @@ struct BenchmarksView: View {
                 } header: {
                     Text("Live on this phone")
                 }
+                .glassRows()
 
                 let charted = rows.filter { $0.latencyMs != nil }
                 if !charted.isEmpty {
@@ -68,6 +69,7 @@ struct BenchmarksView: View {
                     } header: {
                         Text("Speed")
                     }
+                    .glassRows()
                 }
 
                 if !rows.isEmpty {
@@ -87,10 +89,11 @@ struct BenchmarksView: View {
                     } footer: {
                         Text("Numbers come from the project's evaluation runs. Results from different devices or methods aren't directly comparable.")
                     }
+                    .glassRows()
                 }
             }
             .scrollContentBackground(.hidden)
-            .background { GraphiteBackground() }
+            .background { DeskBackground() }
             .navigationTitle("Benchmarks")
             .task { rows = Self.loadRows() }
         }

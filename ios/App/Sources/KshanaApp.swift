@@ -3,7 +3,7 @@ import SwiftUI
 @main
 struct KshanaApp: App {
     @State private var studio = Studio()
-    @State private var tab = CommandLine.arguments.contains("--tab-benchmarks") ? 2 : 0
+    @State private var tab = CommandLine.arguments.contains("--tab-benchmarks") ? 2 : CommandLine.arguments.contains("--tab-inside") ? 1 : 0
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
@@ -23,6 +23,9 @@ struct KshanaApp: App {
                 await studio.prepare()
                 if CommandLine.arguments.contains("--live-test") {
                     await studio.runLiveTest()
+                }
+                if CommandLine.arguments.contains("--ui-shots") {
+                    await studio.saveInterfaceShots()
                 }
                 if CommandLine.arguments.contains("--ui-test") {
                     await studio.runInterfaceTest()

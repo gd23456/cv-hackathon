@@ -8,6 +8,8 @@ import { crc32, deflateSync } from "node:zlib";
 const ART = {
   // Dark enough for text on top: blue ink and red ink in black water.
   desk: { width: 1600, height: 1000, seed: 7, colors: ["#05070b", "#0a1320", "#123058", "#2a66c9", "#090a12", "#5f1518", "#c93a26", "#f08a62"], scale: 0.5, warp: 3.4, angle: -0.5, gloss: 0.32, veins: 0.5 },
+  // The same ink, portrait, for the iPhone app. make_brand_assets.py finishes it.
+  phone: { width: 786, height: 1704, seed: 7, colors: ["#05070b", "#0a1320", "#123058", "#2a66c9", "#090a12", "#5f1518", "#c93a26", "#f08a62"], scale: 0.5, warp: 3.4, angle: -0.5, gloss: 0.32, veins: 0.5 },
   // The back of the folder is meant to be seen, so it's brighter.
   back: { width: 900, height: 1000, seed: 21, colors: ["#0a1020", "#1d3f73", "#4f94ff", "#bcd6ff", "#1b1119", "#b3261e", "#ff6a3d", "#ffd2b3"], scale: 0.72, warp: 3.2, angle: 0.8, gloss: 0.55, veins: 0.4 },
 };
@@ -127,7 +129,9 @@ function png(w, h, rgb) {
 
 const out = new URL("../web/art/", import.meta.url);
 mkdirSync(out, { recursive: true });
+const only = process.argv.slice(2);
 for (const [name, recipe] of Object.entries(ART)) {
+  if (only.length ? !only.includes(name) : name === "phone") continue;
   writeFileSync(new URL(`${name}.png`, out), png(recipe.width, recipe.height, paint(recipe)));
   console.log(name);
 }

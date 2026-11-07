@@ -23,7 +23,7 @@ struct CreateView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                GraphiteBackground()
+                DeskBackground()
                 if motion, working {
                     WarpField(cards: studio.flyingCards)
                         .offset(y: -130)
@@ -53,7 +53,11 @@ struct CreateView: View {
 
     private var header: some View {
         HStack {
-            Text("Kshana").font(.system(size: 28, weight: .bold)).tracking(-0.5)
+            HStack(spacing: 8) {
+                Image(decorative: "KshanaMark").resizable().scaledToFit().frame(height: 32)
+                Image("KshanaWord").resizable().scaledToFit().frame(height: 20).accessibilityLabel("Kshana")
+            }
+            .accessibilityAddTraits(.isHeader)
             Spacer()
             HStack(spacing: 5) {
                 Image(systemName: network.isOffline ? "airplane" : "cpu")
@@ -63,7 +67,7 @@ struct CreateView: View {
             .foregroundStyle(network.isOffline ? Color(red: 0.35, green: 0.78, blue: 0.5) : .secondary)
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
-            .background(Color.kshanaPanel, in: .capsule)
+            .background(.ultraThinMaterial, in: .capsule)
             .animation(.snappy, value: network.isOffline)
             if let image = studio.exportImage {
                 ShareLink(item: Image(uiImage: image), preview: SharePreview("AI-generated image", image: Image(uiImage: image))) {
@@ -73,9 +77,51 @@ struct CreateView: View {
         }
     }
 
+    /// The result folder, back to front: marbled back panel, the image as a sheet, then the frosted front.
     private var canvas: some View {
+        VStack(spacing: 8) {
+            sheet
+                .padding(.horizontal, 10)
+                .padding(.top, 34)
+            folderFront
+        }
+        .background {
+            let back = FolderShape(tabWidth: 150, tabHeight: 26, tabOnRight: true)
+            Color.clear
+                .overlay { Image(decorative: "FolderBack").resizable().scaledToFill() }
+                .clipShape(back)
+                .overlay { back.stroke(.white.opacity(0.22), lineWidth: 1) }
+        }
+    }
+
+    private var folderCaption: String {
+        if let summary = studio.summary, !working { return "Best of \(summary.candidatesTried) images, all checked" }
+        if working, studio.triedCount > 0 { return "Best so far of \(studio.triedCount) images" }
+        return studio.image == nil ? "No image yet" : "Made on this iPhone"
+    }
+
+    /// Leans forward while the search runs, then settles when it's done.
+    private var folderFront: some View {
+        Text(folderCaption)
+            .font(.caption.monospacedDigit())
+            .foregroundStyle(.secondary)
+            .contentTransition(.numericText())
+            .animation(motion ? .snappy : nil, value: studio.triedCount)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 18)
+            .padding(.top, 32)
+            .padding(.bottom, 12)
+            .glass(in: FolderShape(tabWidth: 122, tabHeight: 24))
+            .folderTab("Best image", height: 24)
+            .rotation3DEffect(.degrees(working && motion ? -10 : 0), axis: (x: 1, y: 0, z: 0), anchor: .bottom, perspective: 0.6)
+            .animation(.spring(duration: 0.7, bounce: 0.35), value: working)
+    }
+
+    private var sheet: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 16).fill(Color.kshanaPanel)
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.kshanaBackground.opacity(0.84))
+                .shadow(color: .black.opacity(0.5), radius: 12, y: 8)
             if working, studio.image == nil {
                 GeneratingView(prompt: studio.prompt, animated: motion)
                     .transition(.opacity)
@@ -107,7 +153,8 @@ struct CreateView: View {
             canvasStatus
         }
         .aspectRatio(1, contentMode: .fit)
-        .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(.white.opacity(0.08)))
+        .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(.white.opacity(0.14)))
+        .modifier(DropIn(revision: studio.imageRevision, enabled: motion && !studio.liveMode && !studio.isExploring))
         .sensoryFeedback(.impact(weight: .light), trigger: studio.imageRevision)
     }
 
@@ -178,7 +225,8 @@ struct CreateView: View {
                                 .font(.caption)
                                 .padding(.horizontal, 11)
                                 .padding(.vertical, 7)
-                                .background(Color.kshanaPanel, in: .capsule)
+                                .background(Color.kshanaWell, in: .capsule)
+                                .overlay(Capsule().strokeBorder(.white.opacity(0.14)))
                                 .foregroundStyle(.primary)
                         }
                     }
@@ -193,7 +241,7 @@ struct CreateView: View {
                         .font(.footnote.weight(.semibold))
                         .padding(.horizontal, 12)
                         .frame(height: 32)
-                        .background(studio.liveMode ? Color.kshanaAccent : Color.kshanaPanel, in: .capsule)
+                        .background(studio.liveMode ? Color.kshanaAccent : Color.kshanaWell, in: .capsule)
                         .foregroundStyle(studio.liveMode ? .white : .primary)
                 }
                 .accessibilityValue(studio.liveMode ? "On" : "Off")
@@ -213,15 +261,15 @@ struct CreateView: View {
                     .onChange(of: studio.prompt) { studio.promptDidChange() }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 11)
-                    .background(Color.kshanaPanel, in: .rect(cornerRadius: 14))
-                    .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(.white.opacity(0.1)))
+                    .background(Color.kshanaWell, in: .rect(cornerRadius: 14))
+                    .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(.white.opacity(0.14)))
                 Button {
                     Task { await voice.toggle { studio.prompt = $0 } }
                 } label: {
                     Image(systemName: voice.isListening ? "waveform" : "mic")
                         .symbolEffect(.variableColor.iterative, isActive: voice.isListening && !reduceMotion)
                         .frame(width: 44, height: 44)
-                        .background(voice.isListening ? Color.kshanaAccent : Color.kshanaPanel, in: .circle)
+                        .background(voice.isListening ? Color.kshanaAccent : Color.kshanaWell, in: .circle)
                         .foregroundStyle(voice.isListening ? .white : .primary)
                 }
                 .accessibilityLabel(voice.isListening ? "Stop listening" : "Speak a prompt")
@@ -234,7 +282,7 @@ struct CreateView: View {
                         }
                     }
                     .frame(width: 44, height: 44)
-                    .background(studio.canGenerate || working ? Color.kshanaAccent : Color.kshanaPanel, in: .circle)
+                    .background(studio.canGenerate || working ? AnyShapeStyle(Color.kshanaKey) : AnyShapeStyle(Color.kshanaWell), in: .circle)
                     .foregroundStyle(.white)
                 }
                 .disabled(!studio.canGenerate)
@@ -242,9 +290,21 @@ struct CreateView: View {
             }
             .padding(.horizontal)
         }
-        .padding(.top, 10)
-        .padding(.bottom, 8)
-        .background(.bar)
+        .padding(.top, 30)
+        .padding(.bottom, 10)
+        .glass(in: FolderShape(tabWidth: 104, tabHeight: 22))
+        .folderTab("Prompt", height: 22)
+        .padding(.horizontal, 6)
+        .padding(.bottom, 2)
+        .background {
+            // Keeps scrolling text from showing in the gap around the floating tab bar.
+            LinearGradient(
+                stops: [.init(color: .clear, location: 0.2), .init(color: Color.kshanaBackground.opacity(0.94), location: 0.55)],
+                startPoint: .top, endPoint: .bottom
+            )
+            .ignoresSafeArea(edges: .bottom)
+            .allowsHitTesting(false)
+        }
     }
 
     private func generate() {

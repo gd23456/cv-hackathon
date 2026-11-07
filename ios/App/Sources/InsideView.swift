@@ -22,6 +22,7 @@ struct InsideView: View {
                         row("Runs on", acceleration.isAccelerated ? "Neural Engine" : "CPU (slower)")
                     }
                 }
+                .glassRows()
 
                 if let summary = studio.summary {
                     Section("Last image") {
@@ -30,6 +31,7 @@ struct InsideView: View {
                         row("Decoder", ms(summary.best.timings.decodeMs))
                         row("Checks", ms(summary.best.verifyMs))
                     }
+                    .glassRows()
 
                     Section("Search") {
                         row("Images tried", "\(summary.candidatesTried)")
@@ -40,6 +42,7 @@ struct InsideView: View {
                             row("Prompt alignment", String(format: "%.3f", alignment))
                         }
                     }
+                    .glassRows()
 
                     Section("Quality measures") {
                         row("Sharpness", String(format: "%.5f", summary.best.quality.sharpness))
@@ -48,6 +51,7 @@ struct InsideView: View {
                         row("8-pixel grid", String(format: "%.2f", summary.best.quality.gridScore))
                         row("Clipped pixels", String(format: "%.1f%%", summary.best.quality.clippedFraction * 100))
                     }
+                    .glassRows()
 
                     Section("Post-processing") {
                         StageRow(name: "Generated", detail: "Straight from the decoder", timing: nil, image: summary.best.image)
@@ -58,15 +62,17 @@ struct InsideView: View {
                             )
                         }
                     }
+                    .glassRows()
                 } else {
                     Section {
                         Text("Generate an image to see how it was made.")
                             .foregroundStyle(.secondary)
                     }
+                    .glassRows()
                 }
             }
             .scrollContentBackground(.hidden)
-            .background { GraphiteBackground() }
+            .background { DeskBackground() }
             .navigationTitle("Inside")
             .onAppear { studio.refreshDevice() }
         }

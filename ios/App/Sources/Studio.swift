@@ -354,6 +354,29 @@ final class Studio {
         try? (line + checkLine + "\nfinalists \(s?.finalists ?? 0)\n").write(to: URL.documentsDirectory.appending(path: "ui_test.txt"), atomically: true, encoding: .utf8)
     }
 
+    /// Test only: saves what the screen looks like at each stage of a search, to copy off the phone.
+    func saveInterfaceShots() async {
+        saveScreen("ui_idle.png")
+        try? await Task.sleep(for: .seconds(1))
+        prompt = "A red apple to the left of a blue cup"
+        budget = .best
+        generate()
+        try? await Task.sleep(for: .seconds(1.5))
+        saveScreen("ui_working.png")
+        await generationTask?.value
+        try? await Task.sleep(for: .seconds(1.5))
+        saveScreen("ui_done.png")
+    }
+
+    private func saveScreen(_ name: String) {
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        guard let window = scenes.first?.keyWindow else { return }
+        let shot = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        }
+        try? shot.pngData()?.write(to: URL.documentsDirectory.appending(path: name))
+    }
+
     /// Generation can't continue in the background, so stop cleanly.
     func cancelForBackground() {
         generationTask?.cancel()
