@@ -1,0 +1,96 @@
+{
+ "prompts": 654,
+ "candidates": 8,
+ "rows": [
+  {
+   "check": "single_object",
+   "label": "Single objects",
+   "n": 61,
+   "one": 95.08,
+   "best_of_8": 96.72,
+   "diff": 1.64,
+   "ci95_lo": 0.0,
+   "ci95_hi": 4.92
+  },
+  {
+   "check": "colors",
+   "label": "Single colours",
+   "n": 72,
+   "one": 73.61,
+   "best_of_8": 79.17,
+   "diff": 5.56,
+   "ci95_lo": -2.78,
+   "ci95_hi": 13.89
+  },
+  {
+   "check": "two_object",
+   "label": "Two objects",
+   "n": 76,
+   "one": 39.47,
+   "best_of_8": 52.63,
+   "diff": 13.16,
+   "ci95_lo": 3.95,
+   "ci95_hi": 22.37
+  },
+  {
+   "check": "counting",
+   "label": "Counts",
+   "n": 61,
+   "one": 32.79,
+   "best_of_8": 39.34,
+   "diff": 6.56,
+   "ci95_lo": -1.64,
+   "ci95_hi": 16.39
+  },
+  {
+   "check": "spatial",
+   "label": "Spatial",
+   "n": 92,
+   "one": 23.91,
+   "best_of_8": 27.17,
+   "diff": 3.26,
+   "ci95_lo": -2.17,
+   "ci95_hi": 8.7
+  },
+  {
+   "check": "color_attr",
+   "label": "Colours on the right objects",
+   "n": 77,
+   "one": 9.09,
+   "best_of_8": 6.49,
+   "diff": -2.6,
+   "ci95_lo": -7.79,
+   "ci95_hi": 2.6
+  },
+  {
+   "check": "position",
+   "label": "Positions",
+   "n": 77,
+   "one": 1.3,
+   "best_of_8": 6.49,
+   "diff": 5.19,
+   "ci95_lo": 0.0,
+   "ci95_hi": 11.69
+  },
+  {
+   "check": "all",
+   "label": "All checkable prompts",
+   "n": 516,
+   "one": 37.02,
+   "best_of_8": 41.67,
+   "diff": 4.65,
+   "ci95_lo": 2.13,
+   "ci95_hi": 7.36
+  },
+  {
+   "check": "clip_l14",
+   "label": "CLIP L/14 score",
+   "n": 654,
+   "one": 27.29,
+   "best_of_8": 28.03,
+   "diff": 0.74,
+   "ci95_lo": 0.56,
+   "ci95_hi": 0.93
+  }
+ ]
+}

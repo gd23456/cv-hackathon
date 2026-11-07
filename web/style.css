@@ -172,8 +172,101 @@ textarea:focus { outline: none; border-color: var(--accent); }
 .cleanup summary { font-weight: 600; cursor: pointer; }
 .cleanup ul { margin: 8px 0 0; padding-left: 18px; color: var(--muted); }
 
+/* How it finds the best image: cards pin to the top of the screen and the next one slides over. */
+.how { grid-column: 1 / -1; min-width: 0; margin-top: 12px; padding-top: 32px; border-top: 1px solid var(--line); }
+.how-head { max-width: 760px; margin-bottom: 8px; }
+.how-stack { --card-h: min(760px, calc(100vh - 88px)); --step: 5px; margin: 0; padding: 0; list-style: none; }
+@supports (height: 100svh) { .how-stack { --card-h: min(760px, calc(100svh - 88px)); } }
+.how-step { position: sticky; top: calc(var(--i) * var(--step)); display: flex; align-items: center; justify-content: center; height: 100vh; height: 100svh; }
+.how-card { width: 100%; max-width: 1080px; height: var(--card-h); overflow: hidden; background: var(--panel); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 -14px 44px rgba(0, 0, 0, 0.5); }
+.how-kicker { font-size: 13px; font-weight: 600; color: var(--accent-hover); font-variant-numeric: tabular-nums; }
+.how-title { font-size: clamp(21px, 2.6vw, 30px); font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; }
+.how-text { font-size: 14px; line-height: 1.45; color: var(--muted); }
+
+.how-card-attempt { display: flex; flex-direction: column; }
+.how-visual { position: relative; flex: 1 1 0; min-height: 0; background: #08090c; }
+.how-visual img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.how-copy { display: flex; flex: 0 0 auto; flex-direction: column; gap: 8px; padding: 14px 16px; }
+.how-verdict { align-self: flex-start; padding: 3px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.how-verdict-best { background: rgba(79, 148, 255, 0.16); color: #a9c9ff; }
+.how-verdict-final { background: rgba(89, 199, 128, 0.16); color: #8fe0ab; }
+.how-verdict-dropped { background: rgba(242, 107, 102, 0.14); color: #f9a5a1; }
+.how-checks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 12px; margin: 0; padding: 0; list-style: none; }
+.how-check { display: grid; grid-template-columns: 15px minmax(0, 1fr); column-gap: 7px; align-items: start; font-size: 13px; line-height: 1.35; }
+.how-check svg { width: 15px; height: 15px; margin-top: 2px; }
+.how-check-label { font-weight: 500; }
+.how-check-detail { display: none; grid-column: 2; font-size: 12px; color: var(--muted); }
+.how-clip { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.how-card-intro { position: relative; display: flex; align-items: center; justify-content: center; }
+.how-mosaic { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: 1fr; opacity: 0.8; }
+.how-mosaic img { width: 100%; height: 100%; min-height: 0; object-fit: cover; }
+.how-mosaic img:nth-child(n + 10) { display: none; }
+.how-intro { position: relative; display: grid; justify-items: center; gap: 12px; width: 100%; height: 100%; align-content: center; padding: 20px; text-align: center; background: radial-gradient(ellipse 75% 75% at center, rgba(13, 15, 19, 0.95) 45%, rgba(13, 15, 19, 0.28)); }
+.how-intro-title { font-size: clamp(28px, 5vw, 52px); font-weight: 700; letter-spacing: -0.025em; line-height: 1.06; }
+.how-prompt { font-size: clamp(16px, 2.2vw, 21px); font-weight: 500; }
+.how-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.how-chip { padding: 4px 11px; border: 1px solid rgba(255, 255, 255, 0.24); border-radius: 999px; background: rgba(13, 15, 19, 0.7); font-size: 13px; }
+.how-intro .how-text { max-width: 58ch; color: #c6ccd4; }
+
+.how-card-sheet, .how-card-benefit { display: flex; flex-direction: column; gap: 12px; padding: 16px; }
+.how-sheet-head { display: grid; gap: 6px; }
+.how-sheet { display: grid; flex: 1 1 auto; grid-template-columns: repeat(4, minmax(0, 1fr)); align-content: start; gap: 6px; min-height: 0; margin: 0; padding: 0; list-style: none; }
+.how-tile { position: relative; overflow: hidden; border-radius: 8px; }
+.how-tile img { width: 100%; height: auto; aspect-ratio: 1; object-fit: cover; }
+.how-tile-dropped img { opacity: 0.5; }
+.how-tile::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; }
+.how-tile-best::after { box-shadow: inset 0 0 0 2px var(--accent); }
+.how-tile-final::after { box-shadow: inset 0 0 0 3px var(--ok); }
+.how-tile-score { position: absolute; left: 4px; top: 4px; padding: 1px 5px; border-radius: 5px; background: rgba(0, 0, 0, 0.72); font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.how-legend { display: flex; gap: 14px; margin: 0; padding: 0; list-style: none; font-size: 12px; color: var(--muted); }
+.how-legend li::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 5px; border-radius: 3px; vertical-align: -1px; }
+.how-legend-best::before { box-shadow: inset 0 0 0 2px var(--accent); }
+.how-legend-final::before { box-shadow: inset 0 0 0 2px var(--ok); }
+
+.how-table { flex: 0 1 auto; min-height: 0; overflow-y: auto; }
+.how-table table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.how-table th, .how-table td { padding: 5px 0 5px 10px; border-bottom: 1px solid var(--line); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.how-table th:first-child, .how-table td:first-child { padding-left: 0; text-align: left; white-space: normal; }
+.how-table th { font-size: 12px; font-weight: 600; color: var(--muted); }
+.how-table tr:last-child td { border-bottom: 0; }
+.how-table-all td { font-weight: 700; }
+.how-foot { font-size: 12px; line-height: 1.4; color: var(--muted); }
+
+@media (min-width: 960px) {
+  .how-stack { --card-h: min(600px, calc(100vh - 128px)); --step: 8px; }
+  @supports (height: 100svh) { .how-stack { --card-h: min(600px, calc(100svh - 128px)); } }
+  .how-card-attempt { display: grid; grid-template-columns: var(--card-h) minmax(0, 1fr); }
+  .how-visual { height: var(--card-h); }
+  .how-copy { justify-content: center; gap: 12px; padding: 28px; }
+  .how-text { font-size: 15px; }
+  .how-checks { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .how-check { font-size: 14px; }
+  .how-check-detail { display: block; }
+  .how-card-sheet, .how-card-benefit { padding: 24px 28px; }
+  .how-sheet { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; max-width: calc((var(--card-h) - 190px) / 2 * 5 + 32px); }
+  .how-mosaic { grid-template-columns: repeat(5, 1fr); }
+  .how-mosaic img:nth-child(n) { display: block; }
+  .how-card-benefit { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); grid-template-rows: auto auto; align-content: center; column-gap: 40px; row-gap: 16px; }
+  .how-card-benefit .how-sheet-head { align-self: end; }
+  .how-card-benefit .how-table { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+  .how-card-benefit .how-foot { grid-column: 1; grid-row: 2; font-size: 13px; }
+  .how-table table { font-size: 14px; }
+}
+/* Too short to pin a whole card, or motion turned off: a plain list instead. */
+@media (max-height: 639px), (prefers-reduced-motion: reduce) {
+  .how-step { position: static; display: block; height: auto; padding: 8px 0; }
+  .how-card { height: auto; box-shadow: none; }
+  .how-card-attempt { display: flex; flex-direction: column; }
+  .how-visual { flex: none; height: auto; }
+  .how-visual img { position: static; height: auto; max-height: 420px; }
+  .how-copy { justify-content: flex-start; }
+  .how-intro { height: auto; }
+  .how-sheet { max-width: 640px; }
+}
+
 /* Measured results */
-.compare { max-width: 1240px; margin: 12px auto 0; padding: 32px 16px 56px; border-top: 1px solid var(--line); }
+.compare { grid-column: 1 / -1; min-width: 0; margin: 12px 0 0; padding: 32px 0 56px; border-top: 1px solid var(--line); }
 .compare-title { font-size: clamp(24px, 4vw, 34px); font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; margin-bottom: 8px; }
 .compare-head { font-size: 17px; font-weight: 600; margin: 30px 0 10px; }
 .compare-note { color: var(--muted); font-size: 14px; margin: 6px 0; max-width: 68ch; }

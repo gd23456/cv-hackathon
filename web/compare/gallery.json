@@ -1,0 +1,66 @@
+[
+ {
+  "prompt": "a red apple to the left of a blue cup on a wooden table",
+  "images": [
+   {
+    "model": "Kshana, 8-bit, 1 step",
+    "src": "compare/apple_kshana.jpg"
+   },
+   {
+    "model": "SD-Turbo, 1 step",
+    "src": "compare/apple_sd-turbo.jpg"
+   },
+   {
+    "model": "SD 1.5, 25 steps",
+    "src": "compare/apple_stable-diffusion-v1-5.jpg"
+   }
+  ]
+ },
+ {
+  "prompt": "two dogs sitting on a green sofa",
+  "images": [
+   {
+    "model": "SD-Turbo, 1 step",
+    "src": "compare/dogs_sd-turbo.jpg"
+   },
+   {
+    "model": "SD 1.5, 25 steps",
+    "src": "compare/dogs_stable-diffusion-v1-5.jpg"
+   }
+  ]
+ },
+ {
+  "prompt": "a small cabin beside a lake at sunset, mountains in the background",
+  "images": [
+   {
+    "model": "Kshana, 8-bit, 1 step",
+    "src": "compare/cabin_kshana.jpg"
+   },
+   {
+    "model": "SD-Turbo, 1 step",
+    "src": "compare/cabin_sd-turbo.jpg"
+   },
+   {
+    "model": "SD 1.5, 25 steps",
+    "src": "compare/cabin_stable-diffusion-v1-5.jpg"
+   }
+  ]
+ },
+ {
+  "prompt": "a bicycle next to a bench in a park",
+  "images": [
+   {
+    "model": "Kshana, 8-bit, 1 step",
+    "src": "compare/bicycle_kshana.jpg"
+   },
+   {
+    "model": "SD-Turbo, 1 step",
+    "src": "compare/bicycle_sd-turbo.jpg"
+   },
+   {
+    "model": "SD 1.5, 25 steps",
+    "src": "compare/bicycle_stable-diffusion-v1-5.jpg"
+   }
+  ]
+ }
+]

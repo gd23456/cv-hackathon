@@ -108,7 +108,7 @@ Compiled Core ML, generator only.
 | sdxs-dreamshaper | **variant A total** | 448.0 | 469.8 |
 | sdxs-dreamshaper | **variant FP16 total** | 819.6 | 859.5 |
 
-Adding the checks and safety models on the iPhone: 122.6 MB more (compiled, measured with du).
+Adding the checks and safety models on the iPhone: 122.6 MiB more (compiled, measured with du).
 
 | Baseline | MiB | MB |
 |---|---|---|
@@ -129,15 +129,21 @@ Adding the checks and safety models on the iPhone: 122.6 MB more (compiled, meas
 
 ![pareto_size.png](results/pareto_size.png)
 
-e1.png: TODO: not measured yet
+Search: best of 8 against one image, 654 held-out complex prompts, Apple M4 Core ML, original wording. The runtime score picks; DETR-R101 and CLIP L/14 grade. Percentages except the CLIP row.
 
-ablation_classical.png: TODO: not measured yet
+| Check | n | One image | Best of 8 | Difference | 95% CI |
+|---|---|---|---|---|---|
+| Single objects | 61 | 95.08 | 96.72 | 1.64 | [0.0, 4.92] |
+| Single colours | 72 | 73.61 | 79.17 | 5.56 | [-2.78, 13.89] |
+| Two objects | 76 | 39.47 | 52.63 | 13.16 | [3.95, 22.37] |
+| Counts | 61 | 32.79 | 39.34 | 6.56 | [-1.64, 16.39] |
+| Spatial | 92 | 23.91 | 27.17 | 3.26 | [-2.17, 8.7] |
+| Colours on the right objects | 77 | 9.09 | 6.49 | -2.6 | [-7.79, 2.6] |
+| Positions | 77 | 1.3 | 6.49 | 5.19 | [0.0, 11.69] |
+| All checkable prompts | 516 | 37.02 | 41.67 | 4.65 | [2.13, 7.36] |
+| CLIP L/14 score | 654 | 27.29 | 28.03 | 0.74 | [0.56, 0.93] |
 
-E1, UNet calls per final image.
-
-| Split | C | Method | Prompts | CLIP ViT-L/14 | Count | Position | Colour | All checks | Engine |
-|---|---|---|---|---|---|---|---|---|---|
-| coco_1k | 1 | SD-Turbo C steps | 1000 | 26.176 | – | – | – | – | PyTorch 2.7 MPS, fp32 compute |
+Classical steps on against off: not measured.
 
 Complex prompts, GenEval rules with DETR-R101 boxes. Not comparable with published GenEval numbers.
 

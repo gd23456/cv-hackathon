@@ -113,7 +113,7 @@ def size_section() -> list[str]:
             rows.append([m["model"], f"**variant {variant} total**", v["compiled_MiB"], v["compiled_MB"]])
     return ["## 5. Model size", "", "Compiled Core ML, generator only.", "",
             *table(["Model", "Component", "MiB", "MB"], rows),
-            "Adding the checks and safety models on the iPhone: 122.6 MB more (compiled, measured with du).", "", *baseline_sizes(), ""]
+            "Adding the checks and safety models on the iPhone: 122.6 MiB more (compiled, measured with du).", "", *baseline_sizes(), ""]
 
 
 def quality_cost_section(metrics: list[dict], latency: list[dict]) -> list[str]:
@@ -122,15 +122,16 @@ def quality_cost_section(metrics: list[dict], latency: list[dict]) -> list[str]:
             for r in metrics if r["split"] == "coco_1k"]
     lines = ["## 6. Quality versus computational cost", "",
              *table(["Config", "CLIP ViT-L/14", "Mean latency ms", "Size MiB", "UNet calls", "Hardware"], rows)]
-    for name in ("pareto_latency.png", "pareto_size.png", "e1.png", "ablation_classical.png"):
+    for name in ("pareto_latency.png", "pareto_size.png"):
         lines += [f"![{name}](results/{name})", ""] if (RESULTS / name).exists() else [f"{name}: {TODO}", ""]
-    e1 = read("e1.csv")
-    if e1:
-        lines += ["E1, UNet calls per final image.", ""]
-        lines += table(["Split", "C", "Method", "Prompts", "CLIP ViT-L/14", "Count", "Position", "Colour", "All checks", "Engine"],
-                       [[r["split"], r["C_unet_calls"], r["method"], r["prompts"], r["clip_l14"], r.get("count_rate"), r.get("position_rate"), r.get("color_rate"), r.get("correct_rate"), r["engine"]] for r in e1])
+    search = read("search_benefit.csv")
+    if search:
+        lines += ["Search: best of 8 against one image, 654 held-out complex prompts, Apple M4 Core ML, original wording. The runtime score picks; DETR-R101 and CLIP L/14 grade. Percentages except the CLIP row.", ""]
+        lines += table(["Check", "n", "One image", "Best of 8", "Difference", "95% CI"],
+                       [[r["label"], r["n"], r["one"], r["best_of_8"], r["diff"], f"[{r['ci95_lo']}, {r['ci95_hi']}]"] for r in search])
     else:
-        lines += [f"E1: {TODO}", ""]
+        lines += [f"Search: {TODO}", ""]
+    lines += ["Classical steps on against off: not measured.", ""]
     complex_rows = read("complex_scores.csv")
     if complex_rows:
         lines += ["Complex prompts, GenEval rules with DETR-R101 boxes. Not comparable with published GenEval numbers.", ""]

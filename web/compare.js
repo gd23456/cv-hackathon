@@ -82,6 +82,12 @@
       row.append(cell);
     });
     figure.append(prompt, row);
+    if (!item.images.some((image) => image.model.startsWith("Kshana"))) {
+      const missing = document.createElement("p");
+      missing.className = "compare-note";
+      missing.textContent = "Kshana's image for this seed was blocked by its own safety check, so it isn't shown.";
+      figure.append(missing);
+    }
     gallery.append(figure);
   });
 

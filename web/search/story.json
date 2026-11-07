@@ -1,0 +1,972 @@
+{
+ "prompt": "a red apple to the left of a blue cup",
+ "budget": "best",
+ "hardware": "Apple M4, ONNX Runtime, 4 CPU threads",
+ "first_seed": 101,
+ "plan": {
+  "tier": "Verified",
+  "resolution": 512,
+  "checks": "full",
+  "budget_s": 8.0,
+  "expected_attempts": 10,
+  "attempt_ms": 758.1,
+  "deliver_res": 512,
+  "reason": "Verified: 8.0 s fits about 10 attempts at 512 px with all checks (0.8 s each here). You chose best."
+ },
+ "status": "done",
+ "timings": {
+  "parse_ms": 1.1,
+  "text_ms": 73.9,
+  "clip_text_ms": 13.7,
+  "first_image_ms": 883.7,
+  "compute_ms": 7945.5,
+  "attempts": 10,
+  "attempt_ms": [
+   793.4,
+   786.0,
+   798.7,
+   813.8,
+   789.8,
+   779.2,
+   775.8,
+   766.7,
+   778.3,
+   767.1
+  ],
+  "rejected": []
+ },
+ "attempts": [
+  {
+   "n": 1,
+   "seed": 101,
+   "wording": "a blue cup and a red apple, the apple is on the left",
+   "score": 0.732,
+   "rejected": null,
+   "new_best": true,
+   "src": "search/attempt_01.jpg",
+   "checks": [
+    {
+     "kind": "presence",
+     "label": "apple",
+     "status": "pass",
+     "detail": "Found at 0.81 confidence.",
+     "value": 0.805
+    },
+    {
+     "kind": "colour",
+     "label": "red apple",
+     "status": "pass",
+     "detail": "93% of the box centre is red.",
+     "value": 0.93
+    },
+    {
+     "kind": "presence",
+     "label": "cup",
+     "status": "fail",
+     "detail": "Not found by the detector.",
+     "value": 0.0
+    },
+    {
+     "kind": "colour",
+     "label": "blue cup",
+     "status": "not_verifiable",
+     "detail": "Object not found, so no box to check."
+    },
+    {
+     "kind": "position",
+     "label": "apple left of cup",
+     "status": "not_verifiable",
+     "detail": "Need both objects found to compare positions."
+    },
+    {
+     "kind": "alignment",
+     "label": "Overall match to prompt",
+     "status": "info",
+     "detail": "CLIP similarity: higher is closer. Not a pass or fail.",
+     "value": 0.332
+    }
+   ],
+   "classical": [
+    {
+     "op": "inpaint",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: clipped blobs 0.0003",
+     "ms": 0.0
+    },
+    {
+     "op": "gray_world",
+     "mode": "gated",
+     "applied": false,
+     "note": "skipped: prompt names colours",
+     "ms": 0.0
+    },
+    {
+     "op": "clahe",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: L std 61.5",
+     "ms": 0.0
+    },
+    {
+     "op": "guided_filter",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: 8-px grid ratio 2.10",
+     "ms": 0.0
+    },
+    {
+     "op": "unsharp",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: Laplacian variance 447",
+     "ms": 0.0
+    }
+   ],
+   "times": {
+    "generate_ms": 693.9,
+    "classical_ms": 10.0,
+    "verify_ms": 87.6
+   }
+  },
+  {
+   "n": 2,
+   "seed": 102,
+   "wording": "a blue cup on the right, a red apple on the left",
+   "score": 0.7479,
+   "rejected": null,
+   "new_best": true,
+   "src": "search/attempt_02.jpg",
+   "checks": [
+    {
+     "kind": "presence",
+     "label": "apple",
+     "status": "pass",
+     "detail": "Found at 0.91 confidence.",
+     "value": 0.91
+    },
+    {
+     "kind": "colour",
+     "label": "red apple",
+     "status": "pass",
+     "detail": "75% of the box centre is red.",
+     "value": 0.753
+    },
+    {
+     "kind": "presence",
+     "label": "cup",
+     "status": "fail",
+     "detail": "Not found by the detector.",
+     "value": 0.0
+    },
+    {
+     "kind": "colour",
+     "label": "blue cup",
+     "status": "not_verifiable",
+     "detail": "Object not found, so no box to check."
+    },
+    {
+     "kind": "position",
+     "label": "apple left of cup",
+     "status": "not_verifiable",
+     "detail": "Need both objects found to compare positions."
+    },
+    {
+     "kind": "alignment",
+     "label": "Overall match to prompt",
+     "status": "info",
+     "detail": "CLIP similarity: higher is closer. Not a pass or fail.",
+     "value": 0.348
+    }
+   ],
+   "classical": [
+    {
+     "op": "inpaint",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: clipped blobs 0.0010",
+     "ms": 0.0
+    },
+    {
+     "op": "gray_world",
+     "mode": "gated",
+     "applied": false,
+     "note": "skipped: prompt names colours",
+     "ms": 0.0
+    },
+    {
+     "op": "clahe",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: L std 57.3",
+     "ms": 0.0
+    },
+    {
+     "op": "guided_filter",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: 8-px grid ratio 2.10",
+     "ms": 0.0
+    },
+    {
+     "op": "unsharp",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: Laplacian variance 386",
+     "ms": 0.0
+    }
+   ],
+   "times": {
+    "generate_ms": 684.2,
+    "classical_ms": 10.7,
+    "verify_ms": 89.4
+   }
+  },
+  {
+   "n": 3,
+   "seed": 103,
+   "wording": "a red apple to the left of a blue cup",
+   "score": 0.708,
+   "rejected": null,
+   "new_best": false,
+   "src": "search/attempt_03.jpg",
+   "checks": [
+    {
+     "kind": "presence",
+     "label": "apple",
+     "status": "pass",
+     "detail": "Found at 0.83 confidence.",
+     "value": 0.835
+    },
+    {
+     "kind": "colour",
+     "label": "red apple",
+     "status": "pass",
+     "detail": "37% of the box centre is red.",
+     "value": 0.37
+    },
+    {
+     "kind": "presence",
+     "label": "cup",
+     "status": "pass",
+     "detail": "Found at 0.84 confidence.",
+     "value": 0.837
+    },
+    {
+     "kind": "colour",
+     "label": "blue cup",
+     "status": "fail",
+     "detail": "1% of the box centre is blue.",
+     "value": 0.005
+    },
+    {
+     "kind": "position",
+     "label": "apple left of cup",
+     "status": "fail",
+     "detail": "Compared box centres with a 0.1 margin."
+    },
+    {
+     "kind": "alignment",
+     "label": "Overall match to prompt",
+     "status": "info",
+     "detail": "CLIP similarity: higher is closer. Not a pass or fail.",
+     "value": 0.348
+    }
+   ],
+   "classical": [
+    {
+     "op": "inpaint",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: clipped blobs 0.0000",
+     "ms": 0.0
+    },
+    {
+     "op": "gray_world",
+     "mode": "gated",
+     "applied": false,
+     "note": "skipped: prompt names colours",
+     "ms": 0.0
+    },
+    {
+     "op": "clahe",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: L std 47.0",
+     "ms": 0.0
+    },
+    {
+     "op": "guided_filter",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: 8-px grid ratio 2.45",
+     "ms": 0.0
+    },
+    {
+     "op": "unsharp",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: Laplacian variance 138",
+     "ms": 0.0
+    }
+   ],
+   "times": {
+    "generate_ms": 694.9,
+    "classical_ms": 12.5,
+    "verify_ms": 89.4
+   }
+  },
+  {
+   "n": 4,
+   "seed": 104,
+   "wording": "a blue cup, a red apple beside it on the left",
+   "score": 0.7126,
+   "rejected": null,
+   "new_best": false,
+   "src": "search/attempt_04.jpg",
+   "checks": [
+    {
+     "kind": "presence",
+     "label": "apple",
+     "status": "pass",
+     "detail": "Found at 0.83 confidence.",
+     "value": 0.828
+    },
+    {
+     "kind": "colour",
+     "label": "red apple",
+     "status": "pass",
+     "detail": "58% of the box centre is red.",
+     "value": 0.58
+    },
+    {
+     "kind": "presence",
+     "label": "cup",
+     "status": "fail",
+     "detail": "Not found by the detector.",
+     "value": 0.0
+    },
+    {
+     "kind": "colour",
+     "label": "blue cup",
+     "status": "not_verifiable",
+     "detail": "Object not found, so no box to check."
+    },
+    {
+     "kind": "position",
+     "label": "apple left of cup",
+     "status": "not_verifiable",
+     "detail": "Need both objects found to compare positions."
+    },
+    {
+     "kind": "alignment",
+     "label": "Overall match to prompt",
+     "status": "info",
+     "detail": "CLIP similarity: higher is closer. Not a pass or fail.",
+     "value": 0.313
+    }
+   ],
+   "classical": [
+    {
+     "op": "inpaint",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: clipped blobs 0.0002",
+     "ms": 0.0
+    },
+    {
+     "op": "gray_world",
+     "mode": "gated",
+     "applied": false,
+     "note": "skipped: prompt names colours",
+     "ms": 0.0
+    },
+    {
+     "op": "clahe",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: L std 62.1",
+     "ms": 0.0
+    },
+    {
+     "op": "guided_filter",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: 8-px grid ratio 3.16",
+     "ms": 0.0
+    },
+    {
+     "op": "unsharp",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: Laplacian variance 241",
+     "ms": 0.0
+    }
+   ],
+   "times": {
+    "generate_ms": 710.9,
+    "classical_ms": 8.2,
+    "verify_ms": 92.9
+   }
+  },
+  {
+   "n": 5,
+   "seed": 105,
+   "wording": "a blue cup and a red apple, the apple is on the left",
+   "score": 0.7448,
+   "rejected": null,
+   "new_best": false,
+   "src": "search/attempt_05.jpg",
+   "checks": [
+    {
+     "kind": "presence",
+     "label": "apple",
+     "status": "pass",
+     "detail": "Found at 0.91 confidence.",
+     "value": 0.907
+    },
+    {
+     "kind": "colour",
+     "label": "red apple",
+     "status": "pass",
+     "detail": "63% of the box centre is red.",
+     "value": 0.628
+    },
+    {
+     "kind": "presence",
+     "label": "cup",
+     "status": "fail",
+     "detail": "Not found by the detector.",
+     "value": 0.0
+    },
+    {
+     "kind": "colour",
+     "label": "blue cup",
+     "status": "not_verifiable",
+     "detail": "Object not found, so no box to check."
+    },
+    {
+     "kind": "position",
+     "label": "apple left of cup",
+     "status": "not_verifiable",
+     "detail": "Need both objects found to compare positions."
+    },
+    {
+     "kind": "alignment",
+     "label": "Overall match to prompt",
+     "status": "info",
+     "detail": "CLIP similarity: higher is closer. Not a pass or fail.",
+     "value": 0.345
+    }
+   ],
+   "classical": [
+    {
+     "op": "inpaint",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: clipped blobs 0.0000",
+     "ms": 0.0
+    },
+    {
+     "op": "gray_world",
+     "mode": "gated",
+     "applied": false,
+     "note": "skipped: prompt names colours",
+     "ms": 0.0
+    },
+    {
+     "op": "clahe",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: L std 50.8",
+     "ms": 0.0
+    },
+    {
+     "op": "guided_filter",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: 8-px grid ratio 2.10",
+     "ms": 0.0
+    },
+    {
+     "op": "unsharp",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: Laplacian variance 273",
+     "ms": 0.0
+    }
+   ],
+   "times": {
+    "generate_ms": 691.1,
+    "classical_ms": 9.5,
+    "verify_ms": 87.4
+   }
+  },
+  {
+   "n": 6,
+   "seed": 106,
+   "wording": "a blue cup on the right, a red apple on the left",
+   "score": 0.7623,
+   "rejected": null,
+   "new_best": true,
+   "src": "search/attempt_06.jpg",
+   "checks": [
+    {
+     "kind": "presence",
+     "label": "apple",
+     "status": "pass",
+     "detail": "Found at 0.91 confidence.",
+     "value": 0.908
+    },
+    {
+     "kind": "colour",
+     "label": "red apple",
+     "status": "pass",
+     "detail": "79% of the box centre is red.",
+     "value": 0.787
+    },
+    {
+     "kind": "presence",
+     "label": "cup",
+     "status": "fail",
+     "detail": "Not found by the detector.",
+     "value": 0.0
+    },
+    {
+     "kind": "colour",
+     "label": "blue cup",
+     "status": "not_verifiable",
+     "detail": "Object not found, so no box to check."
+    },
+    {
+     "kind": "position",
+     "label": "apple left of cup",
+     "status": "not_verifiable",
+     "detail": "Need both objects found to compare positions."
+    },
+    {
+     "kind": "alignment",
+     "label": "Overall match to prompt",
+     "status": "info",
+     "detail": "CLIP similarity: higher is closer. Not a pass or fail.",
+     "value": 0.362
+    }
+   ],
+   "classical": [
+    {
+     "op": "inpaint",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: clipped blobs 0.0002",
+     "ms": 0.0
+    },
+    {
+     "op": "gray_world",
+     "mode": "gated",
+     "applied": false,
+     "note": "skipped: prompt names colours",
+     "ms": 0.0
+    },
+    {
+     "op": "clahe",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: L std 60.4",
+     "ms": 0.0
+    },
+    {
+     "op": "guided_filter",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: 8-px grid ratio 3.30",
+     "ms": 0.0
+    },
+    {
+     "op": "unsharp",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: Laplacian variance 188",
+     "ms": 0.0
+    }
+   ],
+   "times": {
+    "generate_ms": 678.7,
+    "classical_ms": 8.5,
+    "verify_ms": 90.2
+   }
+  },
+  {
+   "n": 7,
+   "seed": 107,
+   "wording": "a red apple to the left of a blue cup",
+   "score": 0.3354,
+   "rejected": null,
+   "new_best": false,
+   "src": "search/attempt_07.jpg",
+   "checks": [
+    {
+     "kind": "presence",
+     "label": "apple",
+     "status": "fail",
+     "detail": "Not found by the detector.",
+     "value": 0.0
+    },
+    {
+     "kind": "colour",
+     "label": "red apple",
+     "status": "not_verifiable",
+     "detail": "Object not found, so no box to check."
+    },
+    {
+     "kind": "presence",
+     "label": "cup",
+     "status": "fail",
+     "detail": "Not found by the detector.",
+     "value": 0.0
+    },
+    {
+     "kind": "colour",
+     "label": "blue cup",
+     "status": "not_verifiable",
+     "detail": "Object not found, so no box to check."
+    },
+    {
+     "kind": "position",
+     "label": "apple left of cup",
+     "status": "not_verifiable",
+     "detail": "Need both objects found to compare positions."
+    },
+    {
+     "kind": "alignment",
+     "label": "Overall match to prompt",
+     "status": "info",
+     "detail": "CLIP similarity: higher is closer. Not a pass or fail.",
+     "value": 0.335
+    }
+   ],
+   "classical": [
+    {
+     "op": "inpaint",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: clipped blobs 0.0000",
+     "ms": 0.0
+    },
+    {
+     "op": "gray_world",
+     "mode": "gated",
+     "applied": false,
+     "note": "skipped: prompt names colours",
+     "ms": 0.0
+    },
+    {
+     "op": "clahe",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: L std 43.5",
+     "ms": 0.0
+    },
+    {
+     "op": "guided_filter",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: 8-px grid ratio 2.39",
+     "ms": 0.0
+    },
+    {
+     "op": "unsharp",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: Laplacian variance 185",
+     "ms": 0.0
+    }
+   ],
+   "times": {
+    "generate_ms": 676.3,
+    "classical_ms": 12.8,
+    "verify_ms": 85.0
+   }
+  },
+  {
+   "n": 8,
+   "seed": 108,
+   "wording": "a blue cup, a red apple beside it on the left",
+   "score": 0.7194,
+   "rejected": null,
+   "new_best": false,
+   "src": "search/attempt_08.jpg",
+   "checks": [
+    {
+     "kind": "presence",
+     "label": "apple",
+     "status": "pass",
+     "detail": "Found at 0.91 confidence.",
+     "value": 0.91
+    },
+    {
+     "kind": "colour",
+     "label": "red apple",
+     "status": "pass",
+     "detail": "75% of the box centre is red.",
+     "value": 0.751
+    },
+    {
+     "kind": "presence",
+     "label": "cup",
+     "status": "fail",
+     "detail": "Not found by the detector.",
+     "value": 0.0
+    },
+    {
+     "kind": "colour",
+     "label": "blue cup",
+     "status": "not_verifiable",
+     "detail": "Object not found, so no box to check."
+    },
+    {
+     "kind": "position",
+     "label": "apple left of cup",
+     "status": "not_verifiable",
+     "detail": "Need both objects found to compare positions."
+    },
+    {
+     "kind": "alignment",
+     "label": "Overall match to prompt",
+     "status": "info",
+     "detail": "CLIP similarity: higher is closer. Not a pass or fail.",
+     "value": 0.319
+    }
+   ],
+   "classical": [
+    {
+     "op": "inpaint",
+     "mode": "gated",
+     "applied": true,
+     "note": "clipped blobs 0.0024",
+     "ms": 2.1
+    },
+    {
+     "op": "gray_world",
+     "mode": "gated",
+     "applied": false,
+     "note": "skipped: prompt names colours",
+     "ms": 0.0
+    },
+    {
+     "op": "clahe",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: L std 69.4",
+     "ms": 0.0
+    },
+    {
+     "op": "guided_filter",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: 8-px grid ratio 1.70",
+     "ms": 0.0
+    },
+    {
+     "op": "unsharp",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: Laplacian variance 321",
+     "ms": 0.0
+    }
+   ],
+   "times": {
+    "generate_ms": 666.0,
+    "classical_ms": 12.1,
+    "verify_ms": 87.0
+   }
+  },
+  {
+   "n": 9,
+   "seed": 109,
+   "wording": "a blue cup and a red apple, the apple is on the left",
+   "score": 0.8454,
+   "rejected": null,
+   "new_best": true,
+   "src": "search/attempt_09.jpg",
+   "checks": [
+    {
+     "kind": "presence",
+     "label": "apple",
+     "status": "pass",
+     "detail": "Found at 0.91 confidence.",
+     "value": 0.909
+    },
+    {
+     "kind": "colour",
+     "label": "red apple",
+     "status": "pass",
+     "detail": "76% of the box centre is red.",
+     "value": 0.756
+    },
+    {
+     "kind": "presence",
+     "label": "cup",
+     "status": "pass",
+     "detail": "Found at 0.62 confidence.",
+     "value": 0.624
+    },
+    {
+     "kind": "colour",
+     "label": "blue cup",
+     "status": "pass",
+     "detail": "100% of the box centre is blue.",
+     "value": 1.0
+    },
+    {
+     "kind": "position",
+     "label": "apple left of cup",
+     "status": "fail",
+     "detail": "Compared box centres with a 0.1 margin."
+    },
+    {
+     "kind": "alignment",
+     "label": "Overall match to prompt",
+     "status": "info",
+     "detail": "CLIP similarity: higher is closer. Not a pass or fail.",
+     "value": 0.365
+    }
+   ],
+   "classical": [
+    {
+     "op": "inpaint",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: clipped blobs 0.0018",
+     "ms": 0.0
+    },
+    {
+     "op": "gray_world",
+     "mode": "gated",
+     "applied": false,
+     "note": "skipped: prompt names colours",
+     "ms": 0.0
+    },
+    {
+     "op": "clahe",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: L std 57.1",
+     "ms": 0.0
+    },
+    {
+     "op": "guided_filter",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: 8-px grid ratio 1.91",
+     "ms": 0.0
+    },
+    {
+     "op": "unsharp",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: Laplacian variance 308",
+     "ms": 0.0
+    }
+   ],
+   "times": {
+    "generate_ms": 681.0,
+    "classical_ms": 10.2,
+    "verify_ms": 85.2
+   }
+  },
+  {
+   "n": 10,
+   "seed": 110,
+   "wording": "a blue cup on the right, a red apple on the left",
+   "score": 0.953,
+   "rejected": null,
+   "new_best": true,
+   "src": "search/attempt_10.jpg",
+   "checks": [
+    {
+     "kind": "presence",
+     "label": "apple",
+     "status": "pass",
+     "detail": "Found at 0.89 confidence.",
+     "value": 0.891
+    },
+    {
+     "kind": "colour",
+     "label": "red apple",
+     "status": "pass",
+     "detail": "87% of the box centre is red.",
+     "value": 0.867
+    },
+    {
+     "kind": "presence",
+     "label": "cup",
+     "status": "pass",
+     "detail": "Found at 0.90 confidence.",
+     "value": 0.903
+    },
+    {
+     "kind": "colour",
+     "label": "blue cup",
+     "status": "pass",
+     "detail": "94% of the box centre is blue.",
+     "value": 0.94
+    },
+    {
+     "kind": "position",
+     "label": "apple left of cup",
+     "status": "pass",
+     "detail": "Compared box centres with a 0.1 margin."
+    },
+    {
+     "kind": "alignment",
+     "label": "Overall match to prompt",
+     "status": "info",
+     "detail": "CLIP similarity: higher is closer. Not a pass or fail.",
+     "value": 0.353
+    }
+   ],
+   "classical": [
+    {
+     "op": "inpaint",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: clipped blobs 0.0000",
+     "ms": 0.0
+    },
+    {
+     "op": "gray_world",
+     "mode": "gated",
+     "applied": false,
+     "note": "skipped: prompt names colours",
+     "ms": 0.0
+    },
+    {
+     "op": "clahe",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: L std 67.6",
+     "ms": 0.0
+    },
+    {
+     "op": "guided_filter",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: 8-px grid ratio 1.86",
+     "ms": 0.0
+    },
+    {
+     "op": "unsharp",
+     "mode": "gated",
+     "applied": false,
+     "note": "gate closed: Laplacian variance 224",
+     "ms": 0.0
+    }
+   ],
+   "times": {
+    "generate_ms": 669.3,
+    "classical_ms": 9.8,
+    "verify_ms": 86.3
+   }
+  }
+ ]
+}

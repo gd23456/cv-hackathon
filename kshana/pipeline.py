@@ -151,8 +151,9 @@ class Pipeline:
         on_plan: Callable[[planner.Plan, list[str]], None],
         on_best: Callable[[dict], None],
         should_stop: Callable[[], bool],
+        first_seed: int | None = None,
     ) -> Outcome:
-        """`remaining_s` is what is left of the job's 30 s limit."""
+        """`remaining_s` is what is left of the job's 30 s limit. `first_seed` makes a recorded run repeatable."""
         start = time.monotonic()
         hard_deadline = start + remaining_s
         t0 = time.perf_counter()
@@ -209,6 +210,7 @@ class Pipeline:
             predicted_ms=plan.attempt_ms,
             on_best=publish,
             should_stop=should_stop,
+            first_seed=first_seed,
         )
         timings = {
             "parse_ms": round(parse_ms, 1),
