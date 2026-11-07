@@ -13,7 +13,7 @@ struct CreateView: View {
     private let examples = [
         "a red apple to the left of a blue cup",
         "a lighthouse on a cliff at sunset",
-        "a golden retriever puppy on green grass",
+        "a red bicycle next to a bench in a park",
         "a bowl of ramen on a dark table",
     ]
 
