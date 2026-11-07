@@ -486,3 +486,6 @@ body { background: var(--stock); color: var(--k); }
 .mark span.mark-c, .mark span.mark-m { display: none; }
 .mark span.mark-k { color: var(--k); }
 .frame { background-image: none; background-color: #171b20; border: 1px solid var(--hair); border-radius: 16px; overflow: hidden; }
+.budget-opt + .budget-opt { border-left: 1px solid var(--hair); }
+.strip i { background: #232931; }
+.strip i.on:nth-child(n) { background: var(--c); }
