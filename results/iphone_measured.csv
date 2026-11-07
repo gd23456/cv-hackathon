@@ -13,3 +13,10 @@ load,First load s,29,iPhone 15,iOS 26.5,S1-A variant A,healthy runs,app; team le
 load,Cached load s,13,iPhone 15,iOS 26.5,S1-A variant A,healthy runs,app; team lead update 7 Nov
 memory,Peak MB,about 1200,iPhone 15,iOS 26.5,S1-A variant A,healthy runs,app; team lead update 7 Nov
 failure,End to end ms,930-1380,iPhone 15,iOS 26.5,S1-A variant A,"separate failure case: fell back to CPU, not a healthy run",app; team lead update 7 Nov
+latency,Generator mean ms,88.3,iPhone 15,iOS 26.5,S1-A variant A,"warm, cool phone (thermal nominal), 6 runs",bench.txt 7 Nov 05:45
+latency,Generator p95 ms,91.8,iPhone 15,iOS 26.5,S1-A variant A,"warm, cool phone (thermal nominal), 6 runs",bench.txt 7 Nov 05:45
+latency,First image ms,113,iPhone 15,iOS 26.5,S1-A variant A,"including safety gate and checks, Best budget",bench.txt 7 Nov 05:45
+search,Images tried in 5 s,44,iPhone 15,iOS 26.5,S1-A variant A,"Best budget, with safety gate and checks",bench.txt 7 Nov 05:45
+load,Cached load s,15.4,iPhone 15,iOS 26.5,S1-A variant A,"models only, one acceleration reload needed",bench.txt 7 Nov 05:45
+memory,Footprint MB,660-675,iPhone 15,iOS 26.5,S1-A variant A,"after load and at end; may omit some Neural Engine memory",bench.txt 7 Nov 05:45
+memory,Peak footprint MB,1212,iPhone 15,iOS 26.5,S1-A variant A,"lifetime peak, during load",bench.txt 7 Nov 05:45
