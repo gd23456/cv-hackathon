@@ -39,7 +39,3 @@ struct KshanaApp: App {
         }
     }
 }
-
-extension Color {
-    static let kshanaAccent = Color(red: 1.0, green: 0.2, blue: 0.62)
-}

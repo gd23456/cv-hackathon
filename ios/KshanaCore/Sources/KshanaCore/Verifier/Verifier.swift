@@ -78,6 +78,14 @@ public actor Verifier {
         )
     }
 
+    /// Apple's on-device aesthetics score, from -1 to 1, used to choose between close finalists.
+    public func aesthetics(of image: RGBAImage) -> Float? {
+        guard let cgImage = image.cgImage else { return nil }
+        let request = VNCalculateImageAestheticsScoresRequest()
+        guard (try? VNImageRequestHandler(cgImage: cgImage, orientation: .up).perform([request])) != nil else { return nil }
+        return request.results?.first?.overallScore
+    }
+
     private func detect(in image: RGBAImage) throws -> [Detection] {
         guard let detector, let cgImage = image.cgImage else { throw GeneratorError.notLoaded }
         let request = VNCoreMLRequest(model: detector)

@@ -90,7 +90,7 @@ struct BenchmarksView: View {
                 }
             }
             .scrollContentBackground(.hidden)
-            .background { AuroraBackground(animated: studio.effectsAllowed) }
+            .background { GraphiteBackground() }
             .navigationTitle("Benchmarks")
             .task { rows = Self.loadRows() }
         }

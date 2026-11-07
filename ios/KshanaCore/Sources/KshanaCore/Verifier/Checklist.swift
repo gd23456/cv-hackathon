@@ -28,7 +28,11 @@ public enum Checklist {
     static let presenceConfidence: Float = 0.25
     static let countConfidence: Float = 0.5
     static let positionMargin: CGFloat = 0.1
-    static let colorFraction = 0.2
+    static let colorFraction = 0.35
+    /// Above this share of another colour named in the prompt, the colour has leaked onto this object.
+    static let leakFraction = 0.2
+    /// Boxes overlapping more than this aren't really beside each other.
+    static let maxRelationOverlap: CGFloat = 0.3
 
     public static func evaluate(_ prompt: ParsedPrompt, detections: [Detection], image: RGBAImage) -> [CheckResult] {
         var results: [CheckResult] = []
@@ -50,7 +54,11 @@ public enum Checklist {
                 results.append(CheckResult(title: object.noun, state: found.isEmpty ? .failed : .passed))
             }
             if let color = object.color {
-                let passed = found.contains { colorShare(of: color, in: $0.box, image: image) >= colorFraction }
+                let others = Set(prompt.objects.compactMap(\.color)).subtracting([color])
+                let passed = found.contains { detection in
+                    colorShare(of: color, in: detection.box, image: image) >= colorFraction
+                        && others.allSatisfy { colorShare(of: $0, in: detection.box, image: image) < leakFraction }
+                }
                 results.append(CheckResult(title: "\(color) \(object.noun)", state: passed ? .passed : .failed))
             }
         }
@@ -71,8 +79,17 @@ public enum Checklist {
         return results
     }
 
+    static func overlap(_ a: CGRect, _ b: CGRect) -> CGFloat {
+        let shared = a.intersection(b)
+        guard !shared.isNull else { return 0 }
+        let area = shared.width * shared.height
+        let smaller = min(a.width * a.height, b.width * b.height)
+        return smaller > 0 ? area / smaller : 0
+    }
+
     static func satisfies(_ relation: SpatialRelation, _ a: CGRect, _ b: CGRect) -> Bool {
-        switch relation {
+        guard overlap(a, b) <= maxRelationOverlap else { return false }
+        return switch relation {
         case .leftOf: a.midX + positionMargin < b.midX
         case .rightOf: a.midX > b.midX + positionMargin
         case .above: a.midY + positionMargin < b.midY

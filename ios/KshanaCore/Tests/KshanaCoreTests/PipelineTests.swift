@@ -97,6 +97,31 @@ private let calm = DeviceState(thermal: .nominal, lowPower: false, availableMB: 
         #expect(Checklist.colorShare(of: "blue", in: box, image: solid(20, 40, 220)) > 0.9)
     }
 
+    @Test func `a half red cup fails the blue check when the prompt names both`() {
+        var pixels = [UInt8](repeating: 255, count: 64 * 64 * 4)
+        for y in 0..<64 {
+            for x in 0..<64 {
+                let i = (y * 64 + x) * 4
+                let blue = x >= 32
+                pixels[i] = blue ? 30 : 220
+                pixels[i + 1] = 40
+                pixels[i + 2] = blue ? 220 : 30
+            }
+        }
+        let image = RGBAImage(width: 64, height: 64, pixels: pixels)
+        let box = CGRect(x: 0, y: 0, width: 1, height: 1)
+        let prompt = PromptParser.parse("a red apple and a blue cup")
+        let results = Checklist.evaluate(prompt, detections: [Detection(label: "cup", confidence: 0.9, box: box)], image: image)
+        #expect(results.contains { $0.title == "blue cup" && $0.state == .failed })
+    }
+
+    @Test func `heavily overlapping objects aren't beside each other`() {
+        let a = CGRect(x: 0.1, y: 0.1, width: 0.5, height: 0.5)
+        let b = CGRect(x: 0.25, y: 0.1, width: 0.5, height: 0.5)
+        #expect(!Checklist.satisfies(.leftOf, a, b))
+        #expect(Checklist.satisfies(.leftOf, a, CGRect(x: 0.65, y: 0.1, width: 0.3, height: 0.5)))
+    }
+
     @Test func `unknown objects are not verifiable rather than passed`() {
         let results = Checklist.evaluate(PromptParser.parse("a mountain"), detections: [], image: solid(0, 0, 0))
         #expect(results.allSatisfy { $0.state == .notVerifiable })

@@ -13,6 +13,7 @@ public struct CandidateResult: Sendable {
     public let quality: QualityReport
     public let timings: GenerationTimings
     public let verifyMs: Double
+    public let safetyMs: Double
     public let isBest: Bool
 }
 
@@ -24,6 +25,7 @@ public struct SessionSummary: Sendable {
     public let elapsedMs: Double
     public let firstImageMs: Double
     public let safetyRejections: Int
+    public let finalists: Int
     public let wasTruncated: Bool
 }
 
@@ -98,6 +100,7 @@ public actor GenerationSession {
             var index = 0
             var failures = 0
             var safetyRejections = 0
+            var top: [CandidateResult] = []
 
             while index < decision.maxCandidates, failures < 4 {
                 try Task.checkCancellation()
@@ -112,7 +115,10 @@ public actor GenerationSession {
                 }
 
                 // Nothing leaves this loop for the screen until the gate has passed it.
-                guard await safety.allows(generated.image) else {
+                var safetyWatch = Stopwatch()
+                let safe = await safety.allows(generated.image)
+                let safetyMs = safetyWatch.lap()
+                guard safe else {
                     safetyRejections += 1
                     if safetyRejections >= Self.maxSafetyRejections {
                         continuation.yield(.blocked(Self.refusal))
@@ -140,9 +146,12 @@ public actor GenerationSession {
                     index: index, seed: seed, image: generated.image, score: score, checks: checks,
                     alignment: alignment, detections: detections,
                     thumbnail: try? ImageOps.resized(generated.image, width: 192, height: 192), quality: quality, timings: generated.timings,
-                    verifyMs: verifyMs, isBest: isBest
+                    verifyMs: verifyMs, safetyMs: safetyMs, isBest: isBest
                 )
                 if isBest { best = candidate }
+                top.append(candidate)
+                top.sort { $0.score > $1.score }
+                if top.count > 3 { top.removeLast() }
                 if firstImageMs == nil { firstImageMs = elapsed() }
                 continuation.yield(.candidate(candidate))
                 index += 1
@@ -150,6 +159,28 @@ public actor GenerationSession {
                 // Everything checkable passed, so more searching can't improve the facts.
                 let verifiable = checks.filter { $0.state != .notVerifiable }
                 if !verifiable.isEmpty, verifiable.allSatisfy({ $0.state == .passed }) { break }
+            }
+
+            // Close finalists are separated by how good they look, not just their facts.
+            var finalists = 1
+            if useVerifier, let verifier, let leader = top.first {
+                let close = top.filter { leader.score - $0.score <= 0.05 }
+                if close.count > 1 {
+                    finalists = close.count
+                    var bestLooking = leader
+                    var bestValue = -Float.infinity
+                    for candidate in close {
+                        let value = await verifier.aesthetics(of: candidate.image) ?? -1
+                        if value > bestValue {
+                            bestValue = value
+                            bestLooking = candidate
+                        }
+                    }
+                    if bestLooking.seed != leader.seed {
+                        best = bestLooking
+                        continuation.yield(.candidate(bestLooking))
+                    }
+                }
             }
 
             guard let best else {
@@ -168,7 +199,7 @@ public actor GenerationSession {
             continuation.yield(.finished(SessionSummary(
                 best: best, finalImage: final, stages: stages, candidatesTried: index,
                 elapsedMs: elapsed(), firstImageMs: firstImageMs ?? 0,
-                safetyRejections: safetyRejections, wasTruncated: tokens.wasTruncated
+                safetyRejections: safetyRejections, finalists: finalists, wasTruncated: tokens.wasTruncated
             )))
         } catch is CancellationError {
             return
