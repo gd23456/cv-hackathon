@@ -74,7 +74,8 @@ public actor Generator {
     private var textEncoder: MLModel?
     private var unet: MLModel?
     private var decoder: MLModel?
-    private var cached: (prompt: String, embedding: MLMultiArray)?
+    /// Encoded prompts, so cycling through rewordings doesn't re-encode them.
+    private var cached: [String: MLMultiArray] = [:]
 
     public init(location: ModelLocation, computeUnits: MLComputeUnits = .cpuAndNeuralEngine, textComputeUnits: MLComputeUnits? = nil) {
         self.location = location
@@ -140,7 +141,7 @@ public actor Generator {
         textEncoder = nil
         unet = nil
         decoder = nil
-        cached = nil
+        cached = [:]
     }
 
     public func tokenize(_ prompt: String) throws -> TokenizedPrompt {
@@ -195,7 +196,7 @@ public actor Generator {
     }
 
     private func embedding(for prompt: String) throws -> (MLMultiArray, Double) {
-        if let cached, cached.prompt == prompt { return (cached.embedding, 0) }
+        if let embedding = cached[prompt] { return (embedding, 0) }
         guard let textEncoder else { throw GeneratorError.notLoaded }
         let tokens = try tokenize(prompt)
         let ids = try MLMultiArray(shape: [1, NSNumber(value: Self.maxTokens)], dataType: .int32)
@@ -208,7 +209,8 @@ public actor Generator {
             throw GeneratorError.badOutput("emb")
         }
         let ms = watch.lap()
-        cached = (prompt, embedding)
+        if cached.count >= 8 { cached.removeAll() }
+        cached[prompt] = embedding
         return (embedding, ms)
     }
 

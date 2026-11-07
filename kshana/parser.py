@@ -211,3 +211,40 @@ def parse(text: str) -> ParsedPrompt:
         spatial_words=spatial_words,
         complexity=score,
     )
+
+
+def rewordings(parsed: ParsedPrompt) -> list[str]:
+    """Rewordings tried alongside the original. A one-step model binds colours and layout far
+    better when the contested object comes first and the layout is stated separately.
+    Candidates are always scored against the original prompt."""
+    objects = parsed.objects
+    if len(objects) < 2:
+        return []
+    relation = next((r for r in parsed.relations if r.relation in VERIFIABLE_RELATIONS), None)
+    if relation is None and sum(1 for o in objects if o.colour) < 2:
+        return []
+
+    def name(o: ObjectSpec) -> str:
+        if o.count and o.count > 1:
+            return f"{o.count} {o.noun}"
+        words = " ".join(w for w in (o.colour, o.noun) if w)
+        return f"{'an' if words[:1] in 'aeiou' else 'a'} {words}"
+
+    def keep_scene(line: str, noun: str) -> str:
+        lower = parsed.text.lower()
+        at = lower.rfind(noun)
+        tail = lower[at + len(noun):].strip() if at >= 0 else ""
+        return f"{line}, {tail}" if tail else line
+
+    if relation is not None:
+        subject, target = objects[relation.subject], objects[relation.target]
+        a, b = name(subject), name(target)
+        lines = {
+            "left of": [f"{b}, {a} beside it on the left", f"{b} and {a}, the {subject.noun} is on the left", f"{b} on the right, {a} on the left"],
+            "right of": [f"{b}, {a} beside it on the right", f"{b} and {a}, the {subject.noun} is on the right", f"{b} on the left, {a} on the right"],
+            "above": [f"{b}, {a} above it", f"{b} below, {a} above"],
+            "below": [f"{b}, {a} below it", f"{b} above, {a} below"],
+        }[relation.relation]
+        return [keep_scene(line, target.noun) for line in lines]
+    a, b = name(objects[0]), name(objects[1])
+    return [keep_scene(f"{b} and {a}", objects[1].noun), keep_scene(f"{a}, {b}, side by side", objects[1].noun)]

@@ -86,6 +86,9 @@ public actor GenerationSession {
             let decision = Planner.decide(budget: budget, complexity: parsed.complexity, device: .current)
             continuation.yield(.planned(parsed, decision))
             let tokens = try await generator.tokenize(trimmed)
+            // Rewordings go first, because they bind colours and layout better than the original.
+            let rewordings = PromptParser.rewordings(of: trimmed, parsed: parsed)
+            let attempts = rewordings + [trimmed]
 
             let verifierReady = await verifier?.isLoaded ?? false
             let useVerifier = decision.useVerifier && verifierReady
@@ -107,7 +110,7 @@ public actor GenerationSession {
                 if best != nil, elapsed() >= decision.deadlineMs { break }
 
                 let seed = baseSeed &+ UInt64(index + failures)
-                let generated = try await generator.generate(prompt: trimmed, seed: seed)
+                let generated = try await generator.generate(prompt: attempts[index % attempts.count], seed: seed)
                 let quality = ImageQuality.measure(generated.image)
                 if quality.isBlank {
                     failures += 1

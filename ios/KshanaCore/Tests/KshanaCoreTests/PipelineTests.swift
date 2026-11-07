@@ -56,6 +56,19 @@ private let calm = DeviceState(thermal: .nominal, lowPower: false, availableMB: 
         #expect(parsed.objects.contains { $0.noun == "mountain" && $0.label == nil })
     }
 
+    @Test func `rewordings name the target first and keep the scene`() {
+        let text = "a red apple to the left of a blue cup on a wooden table"
+        let lines = PromptParser.rewordings(of: text, parsed: PromptParser.parse(text))
+        #expect(lines.first == "a blue cup, a red apple beside it on the left, on a wooden table")
+        #expect(lines.count == 3)
+    }
+
+    @Test func `simple prompts aren't reworded`() {
+        #expect(PromptParser.rewordings(of: "a dog on the grass", parsed: PromptParser.parse("a dog on the grass")).isEmpty)
+        let two = "a cat and a dog"
+        #expect(PromptParser.rewordings(of: two, parsed: PromptParser.parse(two)).isEmpty)
+    }
+
     @Test func `harder prompts score as more complex`() {
         let simple = PromptParser.parse("a dog").complexity
         let hard = PromptParser.parse("a red apple to the left of a blue cup").complexity

@@ -94,6 +94,43 @@ public enum PromptParser {
         return ParsedPrompt(objects: objects, relations: relations)
     }
 
+    /// Rewordings tried alongside the original, because a one-step model binds colours and
+    /// layout far better when the contested object comes first and the layout is stated
+    /// separately. Candidates are always scored against the original prompt.
+    public static func rewordings(of prompt: String, parsed: ParsedPrompt) -> [String] {
+        guard parsed.objects.count >= 2 else { return [] }
+        let colored = parsed.objects.filter { $0.color != nil }.count
+        guard colored >= 2 || !parsed.relations.isEmpty else { return [] }
+
+        func name(_ object: ParsedObject) -> String {
+            if let count = object.count { return "\(count) \(object.noun)" }
+            let words = [object.color, object.noun].compactMap { $0 }.joined(separator: " ")
+            let startsWithVowel = words.first.map { "aeiou".contains($0) } ?? false
+            return "\(startsWithVowel ? "an" : "a") \(words)"
+        }
+
+        func keepingScene(_ line: String, after noun: String) -> String {
+            let lower = prompt.lowercased()
+            guard let range = lower.range(of: noun, options: .backwards) else { return line }
+            let tail = lower[range.upperBound...].trimmingCharacters(in: .whitespaces)
+            return tail.isEmpty ? line : "\(line), \(tail)"
+        }
+
+        if let relation = parsed.relations.first {
+            let subject = parsed.objects[relation.subject], target = parsed.objects[relation.object]
+            let a = name(subject), b = name(target)
+            let lines: [String] = switch relation.relation {
+            case .leftOf: ["\(b), \(a) beside it on the left", "\(b) and \(a), the \(subject.noun) is on the left", "\(b) on the right, \(a) on the left"]
+            case .rightOf: ["\(b), \(a) beside it on the right", "\(b) and \(a), the \(subject.noun) is on the right", "\(b) on the left, \(a) on the right"]
+            case .above: ["\(b), \(a) above it", "\(b) below, \(a) above"]
+            case .below: ["\(b), \(a) below it", "\(b) above, \(a) below"]
+            }
+            return lines.map { keepingScene($0, after: target.noun) }
+        }
+        let a = name(parsed.objects[0]), b = name(parsed.objects[1])
+        return [keepingScene("\(b) and \(a)", after: parsed.objects[1].noun), keepingScene("\(a), \(b), side by side", after: parsed.objects[1].noun)]
+    }
+
     private static func relationIn(_ words: [String]) -> SpatialRelation? {
         let phrase = " " + words.joined(separator: " ") + " "
         if phrase.contains(" left ") { return .leftOf }

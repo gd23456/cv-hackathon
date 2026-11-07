@@ -171,7 +171,8 @@ class Pipeline:
             return Outcome("refused", "This prompt can't be generated. Try describing something different.", "prompt_safety")
 
         t0 = time.perf_counter()
-        emb = self.gen.encode(clean.text)
+        # Rewordings go first: they bind colours and layout better. Scoring still uses the original.
+        embeddings = [self.gen.encode(text) for text in parser.rewordings(parsed)] + [self.gen.encode(clean.text)]
         text_ms = (time.perf_counter() - t0) * 1000.0
         clip_text_ms = clip_text_ms_value
 
@@ -202,7 +203,7 @@ class Pipeline:
             )
 
         result = run_anytime(
-            lambda seed: self._attempt(seed, emb, plan, parsed, text_emb),
+            lambda seed: self._attempt(seed, embeddings[seed % len(embeddings)], plan, parsed, text_emb),
             deadline=start + plan.budget_s,
             hard_deadline=hard_deadline,
             predicted_ms=plan.attempt_ms,
