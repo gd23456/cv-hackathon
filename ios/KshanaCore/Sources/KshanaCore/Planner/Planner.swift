@@ -92,6 +92,17 @@ public enum Planner {
         )
     }
 
+    /// A prompt asking for "a cup" shouldn't be rewarded for showing three.
+    public static func extrasPenalty(_ prompt: ParsedPrompt, detections: [Detection]) -> Double {
+        var extras = 0
+        for object in prompt.objects where object.count == nil {
+            guard let label = object.label else { continue }
+            let found = detections.filter { $0.label == label && $0.confidence >= Checklist.countConfidence }.count
+            extras += max(0, found - 1)
+        }
+        return min(0.2, Double(extras) * 0.05)
+    }
+
     /// Ranks a candidate: mostly checklist facts, then prompt alignment, minus artifacts.
     /// With nothing checkable, alignment alone decides.
     public static func score(checks: [CheckResult], alignment: Float, quality: QualityReport) -> Double {

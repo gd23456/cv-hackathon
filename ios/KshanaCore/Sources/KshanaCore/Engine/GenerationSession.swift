@@ -144,6 +144,7 @@ public actor GenerationSession {
                 }
 
                 let score = Planner.score(checks: checks, alignment: alignment ?? 0, quality: quality)
+                    - Planner.extrasPenalty(parsed, detections: detections)
                 let isBest = best.map { score > $0.score } ?? true
                 let candidate = CandidateResult(
                     index: index, seed: seed, image: generated.image, score: score, checks: checks,
@@ -159,9 +160,10 @@ public actor GenerationSession {
                 continuation.yield(.candidate(candidate))
                 index += 1
 
-                // Everything checkable passed, so more searching can't improve the facts.
+                // Auto stops at the first image that passes everything. Balanced and Best
+                // keep looking, so they can pick the cleanest and best-looking of several.
                 let verifiable = checks.filter { $0.state != .notVerifiable }
-                if !verifiable.isEmpty, verifiable.allSatisfy({ $0.state == .passed }) { break }
+                if budget == .auto, !verifiable.isEmpty, verifiable.allSatisfy({ $0.state == .passed }) { break }
             }
 
             // Close finalists are separated by how good they look, not just their facts.

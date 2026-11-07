@@ -228,6 +228,13 @@ private let calm = DeviceState(thermal: .nominal, lowPower: false, availableMB: 
         #expect(plan.reason.contains("memory"))
     }
 
+    @Test func `extra copies of a single object lose points`() {
+        let prompt = PromptParser.parse("a cup on a bench")
+        let cup = Detection(label: "cup", confidence: 0.8, box: .zero)
+        #expect(Planner.extrasPenalty(prompt, detections: [cup]) == 0)
+        #expect(Planner.extrasPenalty(prompt, detections: [cup, cup, cup]) > 0)
+    }
+
     @Test func `passing checks outrank alignment`() {
         let quality = ImageQuality.measure(gradient())
         let pass = [CheckResult(title: "cup", state: .passed)]
