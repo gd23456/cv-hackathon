@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="https://surgeons-tolerance-void-band.trycloudflare.com"><b>Live demo</b></a> &nbsp;·&nbsp;
+  <a href="https://engaging-moms-wright-genealogy.trycloudflare.com"><b>Live demo</b></a> &nbsp;·&nbsp;
   <a href="eval_P3_T78.md"><b>Results</b></a> &nbsp;·&nbsp;
   <a href="docs/architecture.png"><b>Architecture</b></a> &nbsp;·&nbsp;
   <a href="#quickstart"><b>Quickstart</b></a> &nbsp;·&nbsp;
