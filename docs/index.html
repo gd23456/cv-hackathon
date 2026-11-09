@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kshana live demo</title>
+<meta name="description" content="Forwards to the current address of the Kshana live demo.">
+<meta name="theme-color" content="#0d0f13">
+<link rel="icon" type="image/png" href="logo-mark.png">
+<style>
+  :root { --bg: #0d0f13; --panel: #171b20; --text: #f2f4f7; --muted: #b1b9c4; --accent: #4f94ff; --line: rgba(255, 255, 255, 0.12); }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; background: var(--bg); color: var(--text);
+         font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Arial, sans-serif; }
+  main { width: 100%; max-width: 440px; padding: 28px 24px; text-align: center; background: var(--panel); border: 1px solid var(--line); border-radius: 20px; }
+  .brand { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 18px; }
+  .brand img { width: 40px; height: auto; }
+  .brand span { font-size: 26px; font-weight: 700; color: #66b8b4; letter-spacing: -0.01em; }
+  h1 { margin: 0 0 8px; font-size: 20px; }
+  p { margin: 0 0 12px; color: var(--muted); font-size: 15px; }
+  a { color: var(--accent); overflow-wrap: anywhere; }
+  .go { display: inline-block; margin-top: 6px; padding: 12px 22px; border-radius: 999px; background: var(--accent); color: #fff; font-weight: 600; text-decoration: none; }
+  .small { margin-top: 18px; font-size: 13px; }
+  [hidden] { display: none; }
+</style>
+</head>
+<body>
+<main>
+  <div class="brand"><img src="logo-mark.png" alt=""><span>Kshana</span></div>
+  <h1 id="title">Opening the live demo</h1>
+  <p id="status" role="status">Finding the current address.</p>
+  <p id="manual" hidden><a class="go" id="go" href="#">Open the live demo</a></p>
+  <p class="small">The demo runs on the team's Mac, so its address can change. This page always forwards to the current one.<br>
+    Source and results: <a href="https://github.com/gd23456/cv-hackathon">github.com/gd23456/cv-hackathon</a></p>
+</main>
+<script>
+// The current address lives in docs/live.json, which is updated whenever the tunnel restarts.
+const REPO_FILE = "https://raw.githubusercontent.com/gd23456/cv-hackathon/main/docs/live.json";
+const RETRY_MS = 15000;
+const title = document.getElementById("title");
+const status = document.getElementById("status");
+const manual = document.getElementById("manual");
+const go = document.getElementById("go");
+
+async function currentLink() {
+  for (const source of [`${REPO_FILE}?t=${Date.now()}`, `live.json?t=${Date.now()}`]) {
+    try {
+      const response = await fetch(source, { cache: "no-store" });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.url) return data.url;
+      }
+    } catch { /* try the next source */ }
+  }
+  return null;
+}
+
+// A tunnel that's gone fails to resolve, so a request that gets any answer means it's up.
+async function reachable(url) {
+  try {
+    await fetch(`${url}/health`, { mode: "no-cors", cache: "no-store", signal: AbortSignal.timeout(8000) });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function forward() {
+  const url = await currentLink();
+  if (!url) {
+    status.textContent = "Couldn't read the current address. Trying again shortly.";
+    return setTimeout(forward, RETRY_MS);
+  }
+  go.href = url;
+  manual.hidden = false;
+  if (await reachable(url)) {
+    status.textContent = "Forwarding now.";
+    location.replace(url);
+  } else {
+    title.textContent = "The live demo is restarting";
+    status.textContent = "Its server isn't answering right now. This page checks again every 15 seconds.";
+    setTimeout(forward, RETRY_MS);
+  }
+}
+
+forward();
+</script>
+</body>
+</html>

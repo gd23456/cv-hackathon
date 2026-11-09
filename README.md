@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="https://meets-museum-berkeley-drunk.trycloudflare.com"><b>Live demo</b></a> &nbsp;·&nbsp;
+  <a href="https://gd23456.github.io/cv-hackathon/"><b>Live demo</b></a> &nbsp;·&nbsp;
   <a href="eval_P3_T78.md"><b>Results</b></a> &nbsp;·&nbsp;
   <a href="docs/architecture.png"><b>Architecture</b></a> &nbsp;·&nbsp;
   <a href="#quickstart"><b>Quickstart</b></a> &nbsp;·&nbsp;
@@ -27,7 +27,7 @@ Kshana makes a 512 × 512 image in 88 ms on an iPhone 15's Neural Engine, from a
   </tr>
 </table>
 
-> **Live demo:** the link above is temporary. The website runs on the team's Mac through a Cloudflare Quick Tunnel, so the link changes if the tunnel restarts. The link in our submission form is the current one. Judges can't install the iPhone app themselves, so it's shown in person.
+> **Live demo:** [gd23456.github.io/cv-hackathon](https://gd23456.github.io/cv-hackathon/) always forwards to the current address. The website runs on the team's Mac through a Cloudflare Quick Tunnel, whose address changes whenever the tunnel restarts. Right now it's https://meets-museum-berkeley-drunk.trycloudflare.com. Judges can't install the iPhone app themselves, so it's shown in person.
 
 ## Results
 
