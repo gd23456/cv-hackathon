@@ -27,7 +27,7 @@ Kshana makes a 512 × 512 image in 88 ms on an iPhone 15's Neural Engine, from a
   </tr>
 </table>
 
-> **Live demo:** [gd23456.github.io/cv-hackathon](https://gd23456.github.io/cv-hackathon/) always forwards to the current address. The website runs on the team's Mac through a Cloudflare Quick Tunnel, whose address changes whenever the tunnel restarts. Right now it's https://enrolled-flashers-heather-last.trycloudflare.com. Judges can't install the iPhone app themselves, so it's shown in person.
+> **Live demo:** [gd23456.github.io/cv-hackathon](https://gd23456.github.io/cv-hackathon/) always forwards to the current address. The website runs on the team's Mac through a Cloudflare Quick Tunnel, whose address changes whenever the tunnel restarts. Right now it's https://costa-tmp-firewire-southeast.trycloudflare.com. Judges can't install the iPhone app themselves, so it's shown in person.
 
 ## Results
 
